@@ -88,14 +88,16 @@ var _ = Describe("Updater", func() {
 		})
 
 		It("should support a mix of standard and custom status updates", func() {
+			var replicas int64 = 42
+			var observedGeneration int64 = 99
 			u.UpdateStatus(EnsureCondition(conditions.Deployed(corev1.ConditionTrue, "", "")))
 			u.UpdateStatusCustom(func(uSt *unstructured.Unstructured) bool {
-				Expect(unstructured.SetNestedMap(uSt.Object, map[string]interface{}{"bar": "baz"}, "foo")).To(Succeed())
+				Expect(unstructured.SetNestedField(uSt.Object, replicas, "replicas")).To(Succeed())
 				return true
 			})
 			u.UpdateStatus(EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
 			u.UpdateStatusCustom(func(uSt *unstructured.Unstructured) bool {
-				Expect(unstructured.SetNestedField(uSt.Object, "quux", "foo", "qux")).To(Succeed())
+				Expect(unstructured.SetNestedField(uSt.Object, observedGeneration, "observedGeneration")).To(Succeed())
 				return true
 			})
 			u.UpdateStatus(EnsureCondition(conditions.Initialized(corev1.ConditionTrue, "", "")))
@@ -107,20 +109,21 @@ var _ = Describe("Updater", func() {
 			Expect(found).To(BeFalse())
 			Expect(err).To(Not(HaveOccurred()))
 
-			val, found, err := unstructured.NestedString(obj.Object, "status", "foo", "bar")
-			Expect(val).To(Equal("baz"))
+			val, found, err := unstructured.NestedFieldNoCopy(obj.Object, "status", "replicas")
+			Expect(val).To(Equal(replicas))
 			Expect(found).To(BeTrue())
 			Expect(err).To(Not(HaveOccurred()))
 
-			val, found, err = unstructured.NestedString(obj.Object, "status", "foo", "qux")
-			Expect(val).To(Equal("quux"))
+			val, found, err = unstructured.NestedFieldNoCopy(obj.Object, "status", "observedGeneration")
+			Expect(val).To(Equal(observedGeneration))
 			Expect(found).To(BeTrue())
 			Expect(err).To(Not(HaveOccurred()))
 		})
 
 		It("should preserve any custom status across multiple apply calls", func() {
+			var replicas int64 = 42
 			u.UpdateStatusCustom(func(uSt *unstructured.Unstructured) bool {
-				Expect(unstructured.SetNestedMap(uSt.Object, map[string]interface{}{"bar": "baz"}, "foo")).To(Succeed())
+				Expect(unstructured.SetNestedField(uSt.Object, replicas, "replicas")).To(Succeed())
 				return true
 			})
 			Expect(u.Apply(context.TODO(), obj)).To(Succeed())
@@ -131,8 +134,8 @@ var _ = Describe("Updater", func() {
 			Expect(found).To(BeFalse())
 			Expect(err).To(Not(HaveOccurred()))
 
-			val, found, err := unstructured.NestedString(obj.Object, "status", "foo", "bar")
-			Expect(val).To(Equal("baz"))
+			val, found, err := unstructured.NestedFieldNoCopy(obj.Object, "status", "replicas")
+			Expect(val).To(Equal(replicas))
 			Expect(found).To(BeTrue())
 			Expect(err).To(Succeed())
 
@@ -146,8 +149,8 @@ var _ = Describe("Updater", func() {
 			Expect(found).To(BeFalse())
 			Expect(err).To(Not(HaveOccurred()))
 
-			val, found, err = unstructured.NestedString(obj.Object, "status", "foo", "bar")
-			Expect(val).To(Equal("baz"))
+			val, found, err = unstructured.NestedFieldNoCopy(obj.Object, "status", "replicas")
+			Expect(val).To(Equal(replicas))
 			Expect(found).To(BeTrue())
 			Expect(err).To(Succeed())
 		})
