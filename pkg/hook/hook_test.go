@@ -17,13 +17,10 @@ limitations under the License.
 package hook_test
 
 import (
-	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/release"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	"github.com/operator-framework/helm-operator-plugins/pkg/hook"
 	. "github.com/operator-framework/helm-operator-plugins/pkg/hook"
 )
 
@@ -31,22 +28,22 @@ var _ = Describe("Hook", func() {
 	var _ = Describe("PreHookFunc", func() {
 		It("should implement the PreHook interface", func() {
 			called := false
-			var h PreHook = PreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+			var h PreHook = PreHookFunc(func(*hook.HookInput) error {
 				called = true
 				return nil
 			})
-			Expect(h.Exec(nil, nil, logr.Discard())).To(Succeed())
+			Expect(h.Exec(nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})
 	var _ = Describe("PostHookFunc", func() {
 		It("should implement the PostHook interface", func() {
 			called := false
-			var h PostHook = PostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
+			var h PostHook = PostHookFunc(func(*hook.HookInput) error {
 				called = true
 				return nil
 			})
-			Expect(h.Exec(nil, release.Release{}, logr.Discard())).To(Succeed())
+			Expect(h.Exec(nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})

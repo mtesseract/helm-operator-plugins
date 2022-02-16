@@ -338,26 +338,26 @@ var _ = Describe("Reconciler", func() {
 		var _ = Describe("WithPreHook", func() {
 			It("should set a reconciler prehook", func() {
 				called := false
-				preHook := hook.PreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+				preHook := hook.PreHookFunc(func(*hook.HookInput) error {
 					called = true
 					return nil
 				})
 				Expect(WithPreHook(preHook)(r)).To(Succeed())
 				Expect(r.preHooks).To(HaveLen(1))
-				Expect(r.preHooks[0].Exec(nil, nil, logr.Discard())).To(Succeed())
+				Expect(r.preHooks[0].Exec(nil)).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
 		var _ = Describe("WithPostHook", func() {
 			It("should set a reconciler posthook", func() {
 				called := false
-				postHook := hook.PostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
+				postHook := hook.PostHookFunc(func(*hook.HookInput) error {
 					called = true
 					return nil
 				})
 				Expect(WithPostHook(postHook)(r)).To(Succeed())
 				Expect(r.postHooks).To(HaveLen(1))
-				Expect(r.postHooks[0].Exec(nil, release.Release{}, logr.Discard())).To(Succeed())
+				Expect(r.postHooks[0].Exec(nil)).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
@@ -1351,11 +1351,13 @@ func verifyNoRelease(ctx context.Context, cl client.Client, ns string, name stri
 func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request) {
 	buf := &bytes.Buffer{}
 	By("setting up a pre and post hook", func() {
-		preHook := hook.PreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
-			return errors.New("pre hook foobar")
+		preHook := hook.PreHookFunc(func(in *hook.HookInput) error {
+			in.Log.Error(errors.New("pre hook foobar"), "")
+			return nil
 		})
-		postHook := hook.PostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
-			return errors.New("post hook foobar")
+		postHook := hook.PostHookFunc(func(in *hook.HookInput) error {
+			in.Log.Error(errors.New("post hook foobar"), "")
+			return nil
 		})
 		r.log = zap.New(zap.WriteTo(buf))
 		r.preHooks = append(r.preHooks, preHook)
@@ -1366,12 +1368,35 @@ func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(reconcile.Result{}))
 	})
-	By("verifying pre and post hooks were called and errors logged", func() {
+	By("verifying pre and post hooks were called", func() {
+		Expect(buf.String()).To(ContainSubstring("pre hook foobar"))
+		Expect(buf.String()).To(ContainSubstring("post hook foobar"))
+	})
+	By("verifying failing pre hook errors are logged", func() {
+		preHook := hook.PreHookFunc(func(*hook.HookInput) error {
+			return errors.New("pre hook foobar")
+		})
+		r.preHooks = []hook.PreHook{preHook}
+		r.postHooks = nil
+
+		_, err := r.Reconcile(ctx, req)
+		Expect(err).ToNot(BeNil())
 		Expect(buf.String()).To(ContainSubstring("pre-release hook failed"))
 		Expect(buf.String()).To(ContainSubstring("pre hook foobar"))
+	})
+	By("verifying failing post hook errors are logged", func() {
+		postHook := hook.PostHookFunc(func(*hook.HookInput) error {
+			return errors.New("post hook foobar")
+		})
+		r.preHooks = nil
+		r.postHooks = []hook.PostHook{postHook}
+
+		_, err := r.Reconcile(ctx, req)
+		Expect(err).ToNot(BeNil())
 		Expect(buf.String()).To(ContainSubstring("post-release hook failed"))
 		Expect(buf.String()).To(ContainSubstring("post hook foobar"))
 	})
+
 }
 
 func verifyEvent(ctx context.Context, cl client.Reader, obj metav1.Object, eventType, reason, message string) {

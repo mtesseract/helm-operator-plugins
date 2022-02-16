@@ -507,6 +507,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	}
 	u.UpdateStatus(updater.EnsureCondition(conditions.Initialized(corev1.ConditionTrue, "", "")))
 
+	// TODO: our operator requires(?) our hooks/exts to be run prior to handleDeletion().
+	//
 	if obj.GetDeletionTimestamp() != nil {
 		err := r.handleDeletion(ctx, actionClient, obj, log)
 		return ctrl.Result{}, err
@@ -531,13 +533,28 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		)
 		return ctrl.Result{}, err
 	}
-	u.UpdateStatus(updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
+
+	hookIn := hook.HookInput{
+		Ctx:                ctx,
+		Log:                log,
+		Obj:                obj,
+		HelmRelease:        rel,
+		HelmValues:         vals,
+		DeletionInProgress: obj.GetDeletionTimestamp() != nil,
+	}
 
 	for _, h := range r.preHooks {
-		if err := h.Exec(obj, vals, log); err != nil {
-			log.Error(err, "pre-release hook failed")
+		if err := h.Exec(&hookIn); err != nil {
+			log.Error(err, "pre-release hook failed, aborting reconcilliation", "name", rel.Name, "version", rel.Version)
+			u.UpdateStatus(
+				updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionTrue, conditions.ReasonReconcileError, err)),
+				updater.EnsureConditionUnknown(conditions.TypeReleaseFailed),
+			)
+			return ctrl.Result{}, err
 		}
 	}
+
+	u.UpdateStatus(updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
 
 	switch state {
 	case stateNeedsInstall:
@@ -560,9 +577,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, fmt.Errorf("unexpected release state: %s", state)
 	}
 
+	hookIn.HelmRelease = rel
+
 	for _, h := range r.postHooks {
-		if err := h.Exec(obj, *rel, log); err != nil {
+		if err := h.Exec(&hookIn); err != nil {
 			log.Error(err, "post-release hook failed", "name", rel.Name, "version", rel.Version)
+			u.UpdateStatus(
+				updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionTrue, conditions.ReasonReconcileError, err)),
+				updater.EnsureConditionUnknown(conditions.TypeReleaseFailed),
+			)
+			return ctrl.Result{}, err
 		}
 	}
 

@@ -19,9 +19,7 @@ package hook
 import (
 	"sync"
 
-	"github.com/go-logr/logr"
 	sdkhandler "github.com/operator-framework/operator-lib/handler"
-	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/releaseutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -55,9 +53,13 @@ type dependentResourceWatcher struct {
 	watches map[schema.GroupVersionKind]struct{}
 }
 
-func (d *dependentResourceWatcher) Exec(owner *unstructured.Unstructured, rel release.Release, log logr.Logger) error {
+// func (d *dependentResourceWatcher) Exec(owner *unstructured.Unstructured, rel release.Release, log logr.Logger) error {
+func (d *dependentResourceWatcher) Exec(in *hook.HookInput) error {
 	// using predefined functions for filtering events
 	dependentPredicate := predicate.DependentPredicateFuncs()
+	owner := in.Obj
+	rel := in.HelmRelease
+	log := in.Log
 
 	resources := releaseutil.SplitManifests(rel.Manifest)
 	d.m.Lock()

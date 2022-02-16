@@ -17,28 +17,38 @@ limitations under the License.
 package hook
 
 import (
+	"context"
+
 	"github.com/go-logr/logr"
-	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-type PreHook interface {
-	Exec(*unstructured.Unstructured, chartutil.Values, logr.Logger) error
+type HookInput struct {
+	Ctx                context.Context
+	Log                logr.Logger
+	Obj                *unstructured.Unstructured // current state of the resource object
+	HelmRelease        *release.Release
+	HelmValues         map[string]interface{} // for convenience: merged helmValues + helmConfig + overrideValues
+	DeletionInProgress bool
 }
 
-type PreHookFunc func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error
+type PreHook interface {
+	Exec(in *HookInput) error
+}
 
-func (f PreHookFunc) Exec(obj *unstructured.Unstructured, vals chartutil.Values, log logr.Logger) error {
-	return f(obj, vals, log)
+type PreHookFunc func(in *HookInput) error
+
+func (f PreHookFunc) Exec(in *HookInput) error {
+	return f(in)
 }
 
 type PostHook interface {
-	Exec(*unstructured.Unstructured, release.Release, logr.Logger) error
+	Exec(in *HookInput) error
 }
 
-type PostHookFunc func(*unstructured.Unstructured, release.Release, logr.Logger) error
+type PostHookFunc func(in *HookInput) error
 
-func (f PostHookFunc) Exec(obj *unstructured.Unstructured, rel release.Release, log logr.Logger) error {
-	return f(obj, rel, log)
+func (f PostHookFunc) Exec(in *HookInput) error {
+	return f(in)
 }
