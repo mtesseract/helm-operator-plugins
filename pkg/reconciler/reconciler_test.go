@@ -1147,10 +1147,13 @@ var _ = Describe("Reconciler", func() {
 						BeforeEach(func() {
 							ac := helmfake.NewActionClient()
 							ac.HandleGet = func() (*release.Release, error) {
-								return &release.Release{Name: "test", Version: 1, Manifest: "manifest: 1"}, nil
+								return &release.Release{Name: "test", Version: 1, Manifest: "manifest: 1", Info: &release.Info{Status: release.StatusDeployed}}, nil
 							}
 							ac.HandleUninstall = func() (*release.UninstallReleaseResponse, error) {
 								return nil, errors.New("uninstall failed: foobar")
+							}
+							ac.HandleUpgrade = func() (*release.Release, error) {
+								return &release.Release{Name: "test", Version: 2, Manifest: "manifest: 1", Info: &release.Info{Status: release.StatusDeployed}}, nil
 							}
 							r.actionClientGetter = helmfake.NewActionClientGetter(&ac, nil)
 						})
