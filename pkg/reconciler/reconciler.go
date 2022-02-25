@@ -507,13 +507,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	}
 	u.UpdateStatus(updater.EnsureCondition(conditions.Initialized(corev1.ConditionTrue, "", "")))
 
-	// TODO: our operator requires(?) our hooks/exts to be run prior to handleDeletion().
-	//
-	if obj.GetDeletionTimestamp() != nil {
-		err := r.handleDeletion(ctx, actionClient, obj, log)
-		return ctrl.Result{}, err
-	}
-
 	vals, err := r.getValues(ctx, obj)
 	if err != nil {
 		u.UpdateStatus(
@@ -552,6 +545,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 			)
 			return ctrl.Result{}, err
 		}
+	}
+
+	if obj.GetDeletionTimestamp() != nil {
+		err := r.handleDeletion(ctx, actionClient, obj, log)
+		return ctrl.Result{}, err
 	}
 
 	u.UpdateStatus(updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
