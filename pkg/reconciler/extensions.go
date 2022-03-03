@@ -54,22 +54,22 @@ func (r *Reconciler) extPreReconcile(ctx context.Context, obj *unstructured.Unst
 	})
 }
 
-func (r *Reconciler) extPreDelete(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error {
+func (r *Reconciler) extPreDelete(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
 	return r.extensions.iterate(func(ext extension.Extension) error {
 		e, ok := ext.(extension.PreDeletionExtension)
 		if !ok {
 			return nil
 		}
-		return e.PreDelete(ctx, obj, vals)
+		return e.PreDelete(ctx, obj, release, vals)
 	})
 }
 
-func (r *Reconciler) extPostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error {
+func (r *Reconciler) extPostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values) error {
 	return r.extensions.iterate(func(ext extension.Extension) error {
 		e, ok := ext.(extension.PostReconciliationExtension)
 		if !ok {
 			return nil
 		}
-		return e.PostReconcile(ctx, obj, rel)
+		return e.PostReconcile(ctx, obj, rel, vals)
 	})
 }

@@ -36,7 +36,7 @@ func NewPreHookFunc(f func(context.Context, *unstructured.Unstructured, release.
 	return PreHookFunc{f: f, log: &log}
 }
 
-func NewPostHookFunc(f func(context.Context, *unstructured.Unstructured, release.Release, logr.Logger) error) PostHookFunc {
+func NewPostHookFunc(f func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error) PostHookFunc {
 	log := logr.Discard()
 	return PostHookFunc{f: f, log: &log}
 }
@@ -59,15 +59,15 @@ func (h PreHookFunc) PreReconcile(ctx context.Context, obj *unstructured.Unstruc
 }
 
 type PostHookFunc struct {
-	f   func(context.Context, *unstructured.Unstructured, release.Release, logr.Logger) error
+	f   func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error
 	log *logr.Logger
 }
 
-func (h PostHookFunc) PostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error {
+func (h PostHookFunc) PostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values) error {
 	log := h.log
 	if log == nil {
 		sink := logr.Discard()
 		log = &sink
 	}
-	return h.f(ctx, obj, rel, *log)
+	return h.f(ctx, obj, rel, vals, *log)
 }

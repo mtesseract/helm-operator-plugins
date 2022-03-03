@@ -522,15 +522,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, err
 	}
 
+	rel, state, releaseStateErr := r.getReleaseState(actionClient, obj, vals.AsMap())
+	release := release.Release{}
+	if rel != nil {
+		release = *rel
+	}
+
 	if obj.GetDeletionTimestamp() != nil {
-		err := r.extPreDelete(ctx, obj, vals)
+		err := r.extPreDelete(ctx, obj, release, vals)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("PreDeletionExtension failed: %v", err)
 		}
 		err = r.handleDeletion(ctx, actionClient, obj, log)
 		return ctrl.Result{}, err
 	}
-	rel, state, err := r.getReleaseState(actionClient, obj, vals.AsMap())
+
+	err = releaseStateErr
 	if err != nil {
 		u.UpdateStatus(
 			updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionTrue, conditions.ReasonErrorGettingReleaseState, err)),
@@ -544,10 +551,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	r.extensions.loggerInto(log)
 
-	release := release.Release{}
-	if rel != nil {
-		release = *rel
-	}
 	err = r.extPreReconcile(ctx, obj, release, vals)
 	if err != nil {
 		log.Error(err, "pre-release hook failed")
@@ -574,7 +577,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, fmt.Errorf("unexpected release state: %s", state)
 	}
 
-	err = r.extPostReconcile(ctx, obj, *rel)
+	err = r.extPostReconcile(ctx, obj, *rel, vals)
 	if err != nil {
 		log.Error(err, "post-release hook failed", "name", rel.Name, "version", rel.Version)
 	}

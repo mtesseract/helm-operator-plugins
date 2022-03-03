@@ -45,11 +45,11 @@ var _ = Describe("Hook", func() {
 	var _ = Describe("PostHookFunc", func() {
 		It("should implement the PostHook interface", func() {
 			called := false
-			var h PostHook = NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, logr.Logger) error {
+			var h PostHook = NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 				called = true
 				return nil
 			})
-			Expect(h.PostReconcile(context.TODO(), nil, release.Release{})).To(Succeed())
+			Expect(h.PostReconcile(context.TODO(), nil, release.Release{}, nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})

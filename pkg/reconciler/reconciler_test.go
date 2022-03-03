@@ -355,7 +355,7 @@ var _ = Describe("Reconciler", func() {
 		var _ = Describe("WithPostHook", func() {
 			It("should set a reconciler posthook", func() {
 				called := false
-				postHook := hook.NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, logr.Logger) error {
+				postHook := hook.NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 					called = true
 					return nil
 				})
@@ -363,7 +363,7 @@ var _ = Describe("Reconciler", func() {
 				Expect(WithPostHook(postHook)(r)).To(Succeed())
 				Expect(r.extensions.len()).To(Equal(nExtensions + 1))
 				hook := r.extensions.get(nExtensions).(extension.PostReconciliationExtension)
-				Expect(hook.PostReconcile(context.TODO(), nil, release.Release{})).To(Succeed())
+				Expect(hook.PostReconcile(context.TODO(), nil, release.Release{}, nil)).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
@@ -1362,7 +1362,7 @@ func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request
 		preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 			return errors.New("pre hook foobar")
 		})
-		postHook := hook.NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, logr.Logger) error {
+		postHook := hook.NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 			return errors.New("post hook foobar")
 		})
 		r.log = zap.New(zap.WriteTo(buf))

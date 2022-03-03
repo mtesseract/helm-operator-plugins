@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-logr/logr"
 	sdkhandler "github.com/operator-framework/operator-lib/handler"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/releaseutil"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -63,7 +64,7 @@ func (d *dependentResourceWatcher) InjectLogger(l logr.Logger) {
 	d.log = &l
 }
 
-func (d *dependentResourceWatcher) PostReconcile(ctx context.Context, owner *unstructured.Unstructured, rel release.Release) error {
+func (d *dependentResourceWatcher) PostReconcile(ctx context.Context, owner *unstructured.Unstructured, rel release.Release, _ chartutil.Values) error {
 	// using predefined functions for filtering events
 	dependentPredicate := predicate.DependentPredicateFuncs()
 
