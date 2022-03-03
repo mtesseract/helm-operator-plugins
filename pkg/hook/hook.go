@@ -49,7 +49,7 @@ type PostHook interface {
 	extension.PostReconciliationExtension
 }
 
-func (h PreHookFunc) ExecPreReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
+func (h PreHookFunc) PreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
 	log := h.log
 	if log == nil {
 		sink := logr.Discard()
@@ -63,7 +63,7 @@ type PostHookFunc struct {
 	log *logr.Logger
 }
 
-func (h PostHookFunc) ExecPostReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error {
+func (h PostHookFunc) PostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error {
 	log := h.log
 	if log == nil {
 		sink := logr.Discard()

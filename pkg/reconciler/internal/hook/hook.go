@@ -63,7 +63,7 @@ func (d *dependentResourceWatcher) InjectLogger(l logr.Logger) {
 	d.log = &l
 }
 
-func (d *dependentResourceWatcher) ExecPostReconciliationExtension(ctx context.Context, owner *unstructured.Unstructured, rel release.Release) error {
+func (d *dependentResourceWatcher) PostReconcile(ctx context.Context, owner *unstructured.Unstructured, rel release.Release) error {
 	// using predefined functions for filtering events
 	dependentPredicate := predicate.DependentPredicateFuncs()
 

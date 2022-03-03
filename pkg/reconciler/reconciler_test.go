@@ -344,11 +344,11 @@ var _ = Describe("Reconciler", func() {
 					called = true
 					return nil
 				})
-				nExtensions := r.extensions.Len()
+				nExtensions := r.extensions.len()
 				Expect(WithPreHook(preHook)(r)).To(Succeed())
-				Expect(r.extensions.Len()).To(Equal(nExtensions + 1))
-				hook := r.extensions.Get(nExtensions).(extension.PreReconciliationExtension)
-				Expect(hook.ExecPreReconciliationExtension(nil, nil, release.Release{}, nil)).To(Succeed())
+				Expect(r.extensions.len()).To(Equal(nExtensions + 1))
+				hook := r.extensions.get(nExtensions).(extension.PreReconciliationExtension)
+				Expect(hook.PreReconcile(context.TODO(), nil, release.Release{}, nil)).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
@@ -359,11 +359,11 @@ var _ = Describe("Reconciler", func() {
 					called = true
 					return nil
 				})
-				nExtensions := r.extensions.Len()
+				nExtensions := r.extensions.len()
 				Expect(WithPostHook(postHook)(r)).To(Succeed())
-				Expect(r.extensions.Len()).To(Equal(nExtensions + 1))
-				hook := r.extensions.Get(nExtensions).(extension.PostReconciliationExtension)
-				Expect(hook.ExecPostReconciliationExtension(nil, nil, release.Release{})).To(Succeed())
+				Expect(r.extensions.len()).To(Equal(nExtensions + 1))
+				hook := r.extensions.get(nExtensions).(extension.PostReconciliationExtension)
+				Expect(hook.PostReconcile(context.TODO(), nil, release.Release{})).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
@@ -1366,8 +1366,8 @@ func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request
 			return errors.New("post hook foobar")
 		})
 		r.log = zap.New(zap.WriteTo(buf))
-		r.extensions.Register(preHook)
-		r.extensions.Register(postHook)
+		r.extensions.register(preHook)
+		r.extensions.register(postHook)
 	})
 	By("successfully reconciling a request", func() {
 		res, err := r.Reconcile(ctx, req)
