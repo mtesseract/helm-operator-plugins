@@ -39,11 +39,13 @@ import (
 )
 
 func NewDependentResourceWatcher(c controller.Controller, rm meta.RESTMapper) hook.PostHook {
+	sink := logr.Discard()
 	return &dependentResourceWatcher{
 		controller: c,
 		restMapper: rm,
 		m:          sync.Mutex{},
 		watches:    make(map[schema.GroupVersionKind]struct{}),
+		log:        &sink,
 	}
 }
 
@@ -53,9 +55,14 @@ type dependentResourceWatcher struct {
 
 	m       sync.Mutex
 	watches map[schema.GroupVersionKind]struct{}
+	log     *logr.Logger
 }
 
-func (d *dependentResourceWatcher) ExecPostReconciliationExtension(owner *unstructured.Unstructured, rel release.Release, log logr.Logger) error {
+func (d *dependentResourceWatcher) InjectLogger(l logr.Logger) {
+	d.log = &l
+}
+
+func (d *dependentResourceWatcher) ExecPostReconciliationExtension(owner *unstructured.Unstructured, rel release.Release) error {
 	// using predefined functions for filtering events
 	dependentPredicate := predicate.DependentPredicateFuncs()
 
@@ -108,7 +115,7 @@ func (d *dependentResourceWatcher) ExecPostReconciliationExtension(owner *unstru
 			}
 
 			d.watches[depGVK] = struct{}{}
-			log.V(1).Info("Watching dependent resource", "dependentAPIVersion", depGVK.GroupVersion(), "dependentKind", depGVK.Kind)
+			d.log.V(1).Info("Watching dependent resource", "dependentAPIVersion", depGVK.GroupVersion(), "dependentKind", depGVK.Kind)
 			return nil
 		}
 

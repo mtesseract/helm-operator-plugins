@@ -340,7 +340,7 @@ var _ = Describe("Reconciler", func() {
 		var _ = Describe("WithPreHook", func() {
 			It("should set a reconciler prehook", func() {
 				called := false
-				preHook := hook.PreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+				preHook := hook.NewPreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
 					called = true
 					return nil
 				})
@@ -348,14 +348,14 @@ var _ = Describe("Reconciler", func() {
 				Expect(WithPreHook(preHook)(r)).To(Succeed())
 				Expect(r.extensions.Len()).To(Equal(nExtensions + 1))
 				hook := r.extensions.Get(nExtensions).(extension.PreReconciliationExtension)
-				Expect(hook.ExecPreReconciliationExtension(nil, nil, logr.Discard())).To(Succeed())
+				Expect(hook.ExecPreReconciliationExtension(nil, nil)).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
 		var _ = Describe("WithPostHook", func() {
 			It("should set a reconciler posthook", func() {
 				called := false
-				postHook := hook.PostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
+				postHook := hook.NewPostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
 					called = true
 					return nil
 				})
@@ -363,7 +363,7 @@ var _ = Describe("Reconciler", func() {
 				Expect(WithPostHook(postHook)(r)).To(Succeed())
 				Expect(r.extensions.Len()).To(Equal(nExtensions + 1))
 				hook := r.extensions.Get(nExtensions).(extension.PostReconciliationExtension)
-				Expect(hook.ExecPostReconciliationExtension(nil, release.Release{}, logr.Discard())).To(Succeed())
+				Expect(hook.ExecPostReconciliationExtension(nil, release.Release{})).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
@@ -1359,10 +1359,10 @@ func verifyNoRelease(ctx context.Context, cl client.Client, ns string, name stri
 func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request) {
 	buf := &bytes.Buffer{}
 	By("setting up a pre and post hook", func() {
-		preHook := hook.PreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+		preHook := hook.NewPreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
 			return errors.New("pre hook foobar")
 		})
-		postHook := hook.PostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
+		postHook := hook.NewPostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
 			return errors.New("post hook foobar")
 		})
 		r.log = zap.New(zap.WriteTo(buf))

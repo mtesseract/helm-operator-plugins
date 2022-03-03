@@ -32,22 +32,22 @@ var _ = Describe("Hook", func() {
 	var _ = Describe("PreHookFunc", func() {
 		It("should implement the PreHook interface", func() {
 			called := false
-			var h extension.PreReconciliationExtension = PreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+			var h extension.PreReconciliationExtension = NewPreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
 				called = true
 				return nil
 			})
-			Expect(h.ExecPreReconciliationExtension(nil, nil, logr.Discard())).To(Succeed())
+			Expect(h.ExecPreReconciliationExtension(nil, nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})
 	var _ = Describe("PostHookFunc", func() {
 		It("should implement the PostHook interface", func() {
 			called := false
-			var h PostHook = PostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
+			var h PostHook = NewPostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
 				called = true
 				return nil
 			})
-			Expect(h.ExecPostReconciliationExtension(nil, release.Release{}, logr.Discard())).To(Succeed())
+			Expect(h.ExecPostReconciliationExtension(nil, release.Release{})).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})

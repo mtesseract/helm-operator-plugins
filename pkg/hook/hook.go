@@ -24,7 +24,20 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-type PreHookFunc func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error
+type PreHookFunc struct {
+	f   func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error
+	log *logr.Logger
+}
+
+func NewPreHookFunc(f func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error) PreHookFunc {
+	log := logr.Discard()
+	return PreHookFunc{f: f, log: &log}
+}
+
+func NewPostHookFunc(f func(*unstructured.Unstructured, release.Release, logr.Logger) error) PostHookFunc {
+	log := logr.Discard()
+	return PostHookFunc{f: f, log: &log}
+}
 
 type PreHook interface {
 	extension.PreReconciliationExtension
@@ -34,12 +47,25 @@ type PostHook interface {
 	extension.PostReconciliationExtension
 }
 
-func (f PreHookFunc) ExecPreReconciliationExtension(obj *unstructured.Unstructured, vals chartutil.Values, log logr.Logger) error {
-	return f(obj, vals, log)
+func (h PreHookFunc) ExecPreReconciliationExtension(obj *unstructured.Unstructured, vals chartutil.Values) error {
+	log := h.log
+	if log == nil {
+		sink := logr.Discard()
+		log = &sink
+	}
+	return h.f(obj, vals, *log)
 }
 
-type PostHookFunc func(*unstructured.Unstructured, release.Release, logr.Logger) error
+type PostHookFunc struct {
+	f   func(*unstructured.Unstructured, release.Release, logr.Logger) error
+	log *logr.Logger
+}
 
-func (f PostHookFunc) ExecPostReconciliationExtension(obj *unstructured.Unstructured, rel release.Release, log logr.Logger) error {
-	return f(obj, rel, log)
+func (h PostHookFunc) ExecPostReconciliationExtension(obj *unstructured.Unstructured, rel release.Release) error {
+	log := h.log
+	if log == nil {
+		sink := logr.Discard()
+		log = &sink
+	}
+	return h.f(obj, rel, *log)
 }

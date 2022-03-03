@@ -539,7 +539,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	}
 	u.UpdateStatus(updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
 
-	err = r.extensions.PreReconciliationExtPoint(obj, vals, log)
+	r.extensions.LoggerInto(log)
+
+	err = r.extensions.PreReconciliationExtPoint(obj, vals)
 	if err != nil {
 		log.Error(err, "pre-release hook failed")
 	}
@@ -565,7 +567,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, fmt.Errorf("unexpected release state: %s", state)
 	}
 
-	err = r.extensions.PostReconciliationExtPoint(obj, *rel, log)
+	err = r.extensions.PostReconciliationExtPoint(obj, *rel)
 	if err != nil {
 		log.Error(err, "post-release hook failed", "name", rel.Name, "version", rel.Version)
 	}
