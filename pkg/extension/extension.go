@@ -65,8 +65,22 @@ func (es *Extensions) PostReconciliationExtPoint(ctx context.Context, obj *unstr
 	})
 }
 
+func (es *Extensions) PreDeletionExtensionExtPoint(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error {
+	return es.Iterate(func(ext Extension) error {
+		e, ok := ext.(PreDeletionExtension)
+		if !ok {
+			return nil
+		}
+		return e.ExecPreDeletionExtension(ctx, obj, vals)
+	})
+}
+
 type PreReconciliationExtension interface {
 	ExecPreReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error
+}
+
+type PreDeletionExtension interface {
+	ExecPreDeletionExtension(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error
 }
 
 type PostReconciliationExtension interface {

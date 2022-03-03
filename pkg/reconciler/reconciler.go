@@ -513,11 +513,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	}
 	u.UpdateStatus(updater.EnsureCondition(conditions.Initialized(corev1.ConditionTrue, "", "")))
 
-	if obj.GetDeletionTimestamp() != nil {
-		err := r.handleDeletion(ctx, actionClient, obj, log)
-		return ctrl.Result{}, err
-	}
-
 	vals, err := r.getValues(ctx, obj)
 	if err != nil {
 		u.UpdateStatus(
@@ -527,6 +522,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, err
 	}
 
+	if obj.GetDeletionTimestamp() != nil {
+		err := r.extensions.PreDeletionExtensionExtPoint(ctx, obj, vals)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("PreDeletionExtension failed: %v", err)
+		}
+		err = r.handleDeletion(ctx, actionClient, obj, log)
+		return ctrl.Result{}, err
+	}
 	rel, state, err := r.getReleaseState(actionClient, obj, vals.AsMap())
 	if err != nil {
 		u.UpdateStatus(
