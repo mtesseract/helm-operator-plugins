@@ -17,6 +17,8 @@ limitations under the License.
 package hook_test
 
 import (
+	"context"
+
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,22 +34,22 @@ var _ = Describe("Hook", func() {
 	var _ = Describe("PreHookFunc", func() {
 		It("should implement the PreHook interface", func() {
 			called := false
-			var h extension.PreReconciliationExtension = NewPreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+			var h extension.PreReconciliationExtension = NewPreHookFunc(func(context.Context, *unstructured.Unstructured, chartutil.Values, logr.Logger) error {
 				called = true
 				return nil
 			})
-			Expect(h.ExecPreReconciliationExtension(nil, nil)).To(Succeed())
+			Expect(h.ExecPreReconciliationExtension(nil, nil, nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})
 	var _ = Describe("PostHookFunc", func() {
 		It("should implement the PostHook interface", func() {
 			called := false
-			var h PostHook = NewPostHookFunc(func(*unstructured.Unstructured, release.Release, logr.Logger) error {
+			var h PostHook = NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, logr.Logger) error {
 				called = true
 				return nil
 			})
-			Expect(h.ExecPostReconciliationExtension(nil, release.Release{})).To(Succeed())
+			Expect(h.ExecPostReconciliationExtension(nil, nil, release.Release{})).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})

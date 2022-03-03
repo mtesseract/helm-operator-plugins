@@ -1,6 +1,8 @@
 package extension
 
 import (
+	"context"
+
 	"github.com/go-logr/logr"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
@@ -43,30 +45,30 @@ func (es *Extensions) LoggerInto(l logr.Logger) {
 	}
 }
 
-func (es *Extensions) PreReconciliationExtPoint(obj *unstructured.Unstructured, vals chartutil.Values) error {
+func (es *Extensions) PreReconciliationExtPoint(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error {
 	return es.Iterate(func(ext Extension) error {
 		e, ok := ext.(PreReconciliationExtension)
 		if !ok {
 			return nil
 		}
-		return e.ExecPreReconciliationExtension(obj, vals)
+		return e.ExecPreReconciliationExtension(ctx, obj, vals)
 	})
 }
 
-func (es *Extensions) PostReconciliationExtPoint(obj *unstructured.Unstructured, rel release.Release) error {
+func (es *Extensions) PostReconciliationExtPoint(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error {
 	return es.Iterate(func(ext Extension) error {
 		e, ok := ext.(PostReconciliationExtension)
 		if !ok {
 			return nil
 		}
-		return e.ExecPostReconciliationExtension(obj, rel)
+		return e.ExecPostReconciliationExtension(ctx, obj, rel)
 	})
 }
 
 type PreReconciliationExtension interface {
-	ExecPreReconciliationExtension(obj *unstructured.Unstructured, vals chartutil.Values) error
+	ExecPreReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error
 }
 
 type PostReconciliationExtension interface {
-	ExecPostReconciliationExtension(obj *unstructured.Unstructured, rel release.Release) error
+	ExecPostReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error
 }

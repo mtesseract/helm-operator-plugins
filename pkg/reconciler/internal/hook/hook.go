@@ -17,6 +17,7 @@ limitations under the License.
 package hook
 
 import (
+	"context"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -62,7 +63,7 @@ func (d *dependentResourceWatcher) InjectLogger(l logr.Logger) {
 	d.log = &l
 }
 
-func (d *dependentResourceWatcher) ExecPostReconciliationExtension(owner *unstructured.Unstructured, rel release.Release) error {
+func (d *dependentResourceWatcher) ExecPostReconciliationExtension(ctx context.Context, owner *unstructured.Unstructured, rel release.Release) error {
 	// using predefined functions for filtering events
 	dependentPredicate := predicate.DependentPredicateFuncs()
 

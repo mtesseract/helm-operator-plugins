@@ -17,6 +17,8 @@ limitations under the License.
 package hook
 
 import (
+	"context"
+
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -25,16 +27,16 @@ import (
 )
 
 type PreHookFunc struct {
-	f   func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error
+	f   func(context.Context, *unstructured.Unstructured, chartutil.Values, logr.Logger) error
 	log *logr.Logger
 }
 
-func NewPreHookFunc(f func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error) PreHookFunc {
+func NewPreHookFunc(f func(context.Context, *unstructured.Unstructured, chartutil.Values, logr.Logger) error) PreHookFunc {
 	log := logr.Discard()
 	return PreHookFunc{f: f, log: &log}
 }
 
-func NewPostHookFunc(f func(*unstructured.Unstructured, release.Release, logr.Logger) error) PostHookFunc {
+func NewPostHookFunc(f func(context.Context, *unstructured.Unstructured, release.Release, logr.Logger) error) PostHookFunc {
 	log := logr.Discard()
 	return PostHookFunc{f: f, log: &log}
 }
@@ -47,25 +49,25 @@ type PostHook interface {
 	extension.PostReconciliationExtension
 }
 
-func (h PreHookFunc) ExecPreReconciliationExtension(obj *unstructured.Unstructured, vals chartutil.Values) error {
+func (h PreHookFunc) ExecPreReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error {
 	log := h.log
 	if log == nil {
 		sink := logr.Discard()
 		log = &sink
 	}
-	return h.f(obj, vals, *log)
+	return h.f(ctx, obj, vals, *log)
 }
 
 type PostHookFunc struct {
-	f   func(*unstructured.Unstructured, release.Release, logr.Logger) error
+	f   func(context.Context, *unstructured.Unstructured, release.Release, logr.Logger) error
 	log *logr.Logger
 }
 
-func (h PostHookFunc) ExecPostReconciliationExtension(obj *unstructured.Unstructured, rel release.Release) error {
+func (h PostHookFunc) ExecPostReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error {
 	log := h.log
 	if log == nil {
 		sink := logr.Discard()
 		log = &sink
 	}
-	return h.f(obj, rel, *log)
+	return h.f(ctx, obj, rel, *log)
 }
