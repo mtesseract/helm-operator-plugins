@@ -27,11 +27,11 @@ import (
 )
 
 type PreHookFunc struct {
-	f   func(context.Context, *unstructured.Unstructured, chartutil.Values, logr.Logger) error
+	f   func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error
 	log *logr.Logger
 }
 
-func NewPreHookFunc(f func(context.Context, *unstructured.Unstructured, chartutil.Values, logr.Logger) error) PreHookFunc {
+func NewPreHookFunc(f func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error) PreHookFunc {
 	log := logr.Discard()
 	return PreHookFunc{f: f, log: &log}
 }
@@ -49,13 +49,13 @@ type PostHook interface {
 	extension.PostReconciliationExtension
 }
 
-func (h PreHookFunc) ExecPreReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error {
+func (h PreHookFunc) ExecPreReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
 	log := h.log
 	if log == nil {
 		sink := logr.Discard()
 		log = &sink
 	}
-	return h.f(ctx, obj, vals, *log)
+	return h.f(ctx, obj, release, vals, *log)
 }
 
 type PostHookFunc struct {

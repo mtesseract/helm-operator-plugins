@@ -544,7 +544,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	r.extensions.LoggerInto(log)
 
-	err = r.extensions.PreReconciliationExtPoint(ctx, obj, vals)
+	release := release.Release{}
+	if rel != nil {
+		release = *rel
+	}
+	err = r.extensions.PreReconciliationExtPoint(ctx, obj, release, vals)
 	if err != nil {
 		log.Error(err, "pre-release hook failed")
 	}

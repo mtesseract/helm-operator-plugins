@@ -34,11 +34,11 @@ var _ = Describe("Hook", func() {
 	var _ = Describe("PreHookFunc", func() {
 		It("should implement the PreHook interface", func() {
 			called := false
-			var h extension.PreReconciliationExtension = NewPreHookFunc(func(context.Context, *unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+			var h extension.PreReconciliationExtension = NewPreHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 				called = true
 				return nil
 			})
-			Expect(h.ExecPreReconciliationExtension(nil, nil, nil)).To(Succeed())
+			Expect(h.ExecPreReconciliationExtension(nil, nil, release.Release{}, nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})

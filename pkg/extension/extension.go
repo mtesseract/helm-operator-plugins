@@ -45,24 +45,22 @@ func (es *Extensions) LoggerInto(l logr.Logger) {
 	}
 }
 
-func (es *Extensions) PreReconciliationExtPoint(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error {
+type PreReconciliationExtension interface {
+	ExecPreReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error
+}
+
+func (es *Extensions) PreReconciliationExtPoint(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
 	return es.Iterate(func(ext Extension) error {
 		e, ok := ext.(PreReconciliationExtension)
 		if !ok {
 			return nil
 		}
-		return e.ExecPreReconciliationExtension(ctx, obj, vals)
+		return e.ExecPreReconciliationExtension(ctx, obj, release, vals)
 	})
 }
 
-func (es *Extensions) PostReconciliationExtPoint(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error {
-	return es.Iterate(func(ext Extension) error {
-		e, ok := ext.(PostReconciliationExtension)
-		if !ok {
-			return nil
-		}
-		return e.ExecPostReconciliationExtension(ctx, obj, rel)
-	})
+type PreDeletionExtension interface {
+	ExecPreDeletionExtension(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error
 }
 
 func (es *Extensions) PreDeletionExtensionExtPoint(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error {
@@ -75,14 +73,16 @@ func (es *Extensions) PreDeletionExtensionExtPoint(ctx context.Context, obj *uns
 	})
 }
 
-type PreReconciliationExtension interface {
-	ExecPreReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error
-}
-
-type PreDeletionExtension interface {
-	ExecPreDeletionExtension(ctx context.Context, obj *unstructured.Unstructured, vals chartutil.Values) error
-}
-
 type PostReconciliationExtension interface {
 	ExecPostReconciliationExtension(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error
+}
+
+func (es *Extensions) PostReconciliationExtPoint(ctx context.Context, obj *unstructured.Unstructured, rel release.Release) error {
+	return es.Iterate(func(ext Extension) error {
+		e, ok := ext.(PostReconciliationExtension)
+		if !ok {
+			return nil
+		}
+		return e.ExecPostReconciliationExtension(ctx, obj, rel)
+	})
 }

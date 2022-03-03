@@ -340,7 +340,7 @@ var _ = Describe("Reconciler", func() {
 		var _ = Describe("WithPreHook", func() {
 			It("should set a reconciler prehook", func() {
 				called := false
-				preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+				preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 					called = true
 					return nil
 				})
@@ -348,7 +348,7 @@ var _ = Describe("Reconciler", func() {
 				Expect(WithPreHook(preHook)(r)).To(Succeed())
 				Expect(r.extensions.Len()).To(Equal(nExtensions + 1))
 				hook := r.extensions.Get(nExtensions).(extension.PreReconciliationExtension)
-				Expect(hook.ExecPreReconciliationExtension(nil, nil, nil)).To(Succeed())
+				Expect(hook.ExecPreReconciliationExtension(nil, nil, release.Release{}, nil)).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
@@ -1359,7 +1359,7 @@ func verifyNoRelease(ctx context.Context, cl client.Client, ns string, name stri
 func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request) {
 	buf := &bytes.Buffer{}
 	By("setting up a pre and post hook", func() {
-		preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+		preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 			return errors.New("pre hook foobar")
 		})
 		postHook := hook.NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, logr.Logger) error {
