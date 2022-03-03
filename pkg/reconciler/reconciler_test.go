@@ -52,6 +52,7 @@ import (
 	"github.com/operator-framework/helm-operator-plugins/internal/sdk/controllerutil"
 	"github.com/operator-framework/helm-operator-plugins/pkg/annotation"
 	helmclient "github.com/operator-framework/helm-operator-plugins/pkg/client"
+	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	"github.com/operator-framework/helm-operator-plugins/pkg/hook"
 	"github.com/operator-framework/helm-operator-plugins/pkg/internal/status"
 	"github.com/operator-framework/helm-operator-plugins/pkg/internal/testutil"
@@ -343,9 +344,11 @@ var _ = Describe("Reconciler", func() {
 					called = true
 					return nil
 				})
+				nExtensions := len(r.extensions)
 				Expect(WithPreHook(preHook)(r)).To(Succeed())
-				Expect(r.preHooks).To(HaveLen(1))
-				Expect(r.preHooks[0].Exec(nil, nil, logr.Discard())).To(Succeed())
+				Expect(r.extensions).To(HaveLen(nExtensions + 1))
+				hook := r.extensions[nExtensions].(extension.PreReconciliationExtension)
+				Expect(hook.ExecPreReconciliationExtension(nil, nil, logr.Discard())).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
@@ -356,9 +359,11 @@ var _ = Describe("Reconciler", func() {
 					called = true
 					return nil
 				})
+				nExtensions := len(r.extensions)
 				Expect(WithPostHook(postHook)(r)).To(Succeed())
-				Expect(r.postHooks).To(HaveLen(1))
-				Expect(r.postHooks[0].Exec(nil, release.Release{}, logr.Discard())).To(Succeed())
+				Expect(r.extensions).To(HaveLen(nExtensions + 1))
+				hook := r.extensions[nExtensions].(extension.PostReconciliationExtension)
+				Expect(hook.ExecPostReconciliationExtension(nil, release.Release{}, logr.Discard())).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
@@ -1361,8 +1366,7 @@ func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request
 			return errors.New("post hook foobar")
 		})
 		r.log = zap.New(zap.WriteTo(buf))
-		r.preHooks = append(r.preHooks, preHook)
-		r.postHooks = append(r.postHooks, postHook)
+		r.extensions = append(r.extensions, preHook, postHook)
 	})
 	By("successfully reconciling a request", func() {
 		res, err := r.Reconcile(ctx, req)

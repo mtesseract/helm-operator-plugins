@@ -18,27 +18,28 @@ package hook
 
 import (
 	"github.com/go-logr/logr"
+	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-type PreHook interface {
-	Exec(*unstructured.Unstructured, chartutil.Values, logr.Logger) error
-}
-
 type PreHookFunc func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error
 
-func (f PreHookFunc) Exec(obj *unstructured.Unstructured, vals chartutil.Values, log logr.Logger) error {
-	return f(obj, vals, log)
+type PreHook interface {
+	extension.PreReconciliationExtension
 }
 
 type PostHook interface {
-	Exec(*unstructured.Unstructured, release.Release, logr.Logger) error
+	extension.PostReconciliationExtension
+}
+
+func (f PreHookFunc) ExecPreReconciliationExtension(obj *unstructured.Unstructured, vals chartutil.Values, log logr.Logger) error {
+	return f(obj, vals, log)
 }
 
 type PostHookFunc func(*unstructured.Unstructured, release.Release, logr.Logger) error
 
-func (f PostHookFunc) Exec(obj *unstructured.Unstructured, rel release.Release, log logr.Logger) error {
+func (f PostHookFunc) ExecPostReconciliationExtension(obj *unstructured.Unstructured, rel release.Release, log logr.Logger) error {
 	return f(obj, rel, log)
 }

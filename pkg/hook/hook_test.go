@@ -24,6 +24,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	. "github.com/operator-framework/helm-operator-plugins/pkg/hook"
 )
 
@@ -31,11 +32,11 @@ var _ = Describe("Hook", func() {
 	var _ = Describe("PreHookFunc", func() {
 		It("should implement the PreHook interface", func() {
 			called := false
-			var h PreHook = PreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
+			var h extension.PreReconciliationExtension = PreHookFunc(func(*unstructured.Unstructured, chartutil.Values, logr.Logger) error {
 				called = true
 				return nil
 			})
-			Expect(h.Exec(nil, nil, logr.Discard())).To(Succeed())
+			Expect(h.ExecPreReconciliationExtension(nil, nil, logr.Discard())).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})
@@ -46,7 +47,7 @@ var _ = Describe("Hook", func() {
 				called = true
 				return nil
 			})
-			Expect(h.Exec(nil, release.Release{}, logr.Discard())).To(Succeed())
+			Expect(h.ExecPostReconciliationExtension(nil, release.Release{}, logr.Discard())).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})

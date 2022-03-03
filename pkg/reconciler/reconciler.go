@@ -49,6 +49,7 @@ import (
 	"github.com/operator-framework/helm-operator-plugins/internal/sdk/controllerutil"
 	"github.com/operator-framework/helm-operator-plugins/pkg/annotation"
 	helmclient "github.com/operator-framework/helm-operator-plugins/pkg/client"
+	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	"github.com/operator-framework/helm-operator-plugins/pkg/hook"
 	"github.com/operator-framework/helm-operator-plugins/pkg/reconciler/internal/conditions"
 	internalhook "github.com/operator-framework/helm-operator-plugins/pkg/reconciler/internal/hook"
@@ -66,8 +67,7 @@ type Reconciler struct {
 	valueTranslator    values.Translator
 	valueMapper        values.Mapper // nolint:staticcheck
 	eventRecorder      record.EventRecorder
-	preHooks           []hook.PreHook
-	postHooks          []hook.PostHook
+	extensions         []extension.Extension
 
 	log                     logr.Logger
 	gvk                     *schema.GroupVersionKind
@@ -360,23 +360,25 @@ func WithUninstallAnnotations(as ...annotation.Uninstall) Option {
 	}
 }
 
+// WithExtension ...
+func WithExtension(e extension.Extension) Option {
+	return func(r *Reconciler) error {
+		r.extensions = append(r.extensions, e)
+		return nil
+	}
+}
+
 // WithPreHook is an Option that configures the reconciler to run the given
 // PreHook just before performing any actions (e.g. install, upgrade, uninstall,
 // or reconciliation).
 func WithPreHook(h hook.PreHook) Option {
-	return func(r *Reconciler) error {
-		r.preHooks = append(r.preHooks, h)
-		return nil
-	}
+	return WithExtension(h)
 }
 
 // WithPostHook is an Option that configures the reconciler to run the given
 // PostHook just after performing any non-uninstall release actions.
 func WithPostHook(h hook.PostHook) Option {
-	return func(r *Reconciler) error {
-		r.postHooks = append(r.postHooks, h)
-		return nil
-	}
+	return WithExtension(h)
 }
 
 // WithValueTranslator is an Option that configures a function that translates a
@@ -537,9 +539,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	}
 	u.UpdateStatus(updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
 
-	for _, h := range r.preHooks {
-		if err := h.Exec(obj, vals, log); err != nil {
-			log.Error(err, "pre-release hook failed")
+	for _, e := range r.extensions {
+		if h, ok := e.(extension.PreReconciliationExtension); ok {
+			if err := h.ExecPreReconciliationExtension(obj, vals, log); err != nil {
+				log.Error(err, "pre-release hook failed")
+			}
 		}
 	}
 
@@ -564,9 +568,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, fmt.Errorf("unexpected release state: %s", state)
 	}
 
-	for _, h := range r.postHooks {
-		if err := h.Exec(obj, *rel, log); err != nil {
-			log.Error(err, "post-release hook failed", "name", rel.Name, "version", rel.Version)
+	for _, e := range r.extensions {
+		if h, ok := e.(extension.PostReconciliationExtension); ok {
+			if err := h.ExecPostReconciliationExtension(obj, *rel, log); err != nil {
+				log.Error(err, "post-release hook failed", "name", rel.Name, "version", rel.Version)
+			}
 		}
 	}
 
@@ -854,7 +860,8 @@ func (r *Reconciler) setupWatches(mgr ctrl.Manager, c controller.Controller) err
 	}
 
 	if !r.skipDependentWatches {
-		r.postHooks = append([]hook.PostHook{internalhook.NewDependentResourceWatcher(c, mgr.GetRESTMapper())}, r.postHooks...)
+
+		r.extensions = append([]extension.Extension{internalhook.NewDependentResourceWatcher(c, mgr.GetRESTMapper())}, r.extensions...)
 	}
 	return nil
 }
