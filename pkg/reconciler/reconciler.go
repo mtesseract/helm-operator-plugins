@@ -67,7 +67,7 @@ type Reconciler struct {
 	valueTranslator    values.Translator
 	valueMapper        values.Mapper // nolint:staticcheck
 	eventRecorder      record.EventRecorder
-	extensions         []extension.Extension
+	extensions         extension.Extensions
 
 	log                     logr.Logger
 	gvk                     *schema.GroupVersionKind
@@ -363,7 +363,7 @@ func WithUninstallAnnotations(as ...annotation.Uninstall) Option {
 // WithExtension ...
 func WithExtension(e extension.Extension) Option {
 	return func(r *Reconciler) error {
-		r.extensions = append(r.extensions, e)
+		r.extensions.Register(e)
 		return nil
 	}
 }
@@ -539,12 +539,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	}
 	u.UpdateStatus(updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
 
-	for _, e := range r.extensions {
-		if h, ok := e.(extension.PreReconciliationExtension); ok {
-			if err := h.ExecPreReconciliationExtension(obj, vals, log); err != nil {
-				log.Error(err, "pre-release hook failed")
-			}
-		}
+	err = r.extensions.PreReconciliationExtPoint(obj, vals, log)
+	if err != nil {
+		log.Error(err, "pre-release hook failed")
 	}
 
 	switch state {
@@ -568,12 +565,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, fmt.Errorf("unexpected release state: %s", state)
 	}
 
-	for _, e := range r.extensions {
-		if h, ok := e.(extension.PostReconciliationExtension); ok {
-			if err := h.ExecPostReconciliationExtension(obj, *rel, log); err != nil {
-				log.Error(err, "post-release hook failed", "name", rel.Name, "version", rel.Version)
-			}
-		}
+	err = r.extensions.PostReconciliationExtPoint(obj, *rel, log)
+	if err != nil {
+		log.Error(err, "post-release hook failed", "name", rel.Name, "version", rel.Version)
 	}
 
 	ensureDeployedRelease(&u, rel)
@@ -860,8 +854,7 @@ func (r *Reconciler) setupWatches(mgr ctrl.Manager, c controller.Controller) err
 	}
 
 	if !r.skipDependentWatches {
-
-		r.extensions = append([]extension.Extension{internalhook.NewDependentResourceWatcher(c, mgr.GetRESTMapper())}, r.extensions...)
+		r.extensions.Register(internalhook.NewDependentResourceWatcher(c, mgr.GetRESTMapper()))
 	}
 	return nil
 }

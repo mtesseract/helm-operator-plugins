@@ -344,10 +344,10 @@ var _ = Describe("Reconciler", func() {
 					called = true
 					return nil
 				})
-				nExtensions := len(r.extensions)
+				nExtensions := r.extensions.Len()
 				Expect(WithPreHook(preHook)(r)).To(Succeed())
-				Expect(r.extensions).To(HaveLen(nExtensions + 1))
-				hook := r.extensions[nExtensions].(extension.PreReconciliationExtension)
+				Expect(r.extensions.Len()).To(Equal(nExtensions + 1))
+				hook := r.extensions.Get(nExtensions).(extension.PreReconciliationExtension)
 				Expect(hook.ExecPreReconciliationExtension(nil, nil, logr.Discard())).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
@@ -359,10 +359,10 @@ var _ = Describe("Reconciler", func() {
 					called = true
 					return nil
 				})
-				nExtensions := len(r.extensions)
+				nExtensions := r.extensions.Len()
 				Expect(WithPostHook(postHook)(r)).To(Succeed())
-				Expect(r.extensions).To(HaveLen(nExtensions + 1))
-				hook := r.extensions[nExtensions].(extension.PostReconciliationExtension)
+				Expect(r.extensions.Len()).To(Equal(nExtensions + 1))
+				hook := r.extensions.Get(nExtensions).(extension.PostReconciliationExtension)
 				Expect(hook.ExecPostReconciliationExtension(nil, release.Release{}, logr.Discard())).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
@@ -1366,7 +1366,8 @@ func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request
 			return errors.New("post hook foobar")
 		})
 		r.log = zap.New(zap.WriteTo(buf))
-		r.extensions = append(r.extensions, preHook, postHook)
+		r.extensions.Register(preHook)
+		r.extensions.Register(postHook)
 	})
 	By("successfully reconciling a request", func() {
 		res, err := r.Reconcile(ctx, req)
