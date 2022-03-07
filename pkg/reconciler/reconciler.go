@@ -360,7 +360,14 @@ func WithUninstallAnnotations(as ...annotation.Uninstall) Option {
 	}
 }
 
-// WithExtension ...
+// WithExtension is an Option that registers an extension into the reconciler.
+// For example, extensions may be necessary when need arises to manage certain
+// resources outsides of the standard Helm-based workflow.
+//
+// In order for the extension to be effectively called by the reconciler it needs
+// to implement an extension interface. There are several extension interfaces and
+// an extension may implement any extension interfaces that are required for the
+// specific feature.
 func WithExtension(e extension.Extension) Option {
 	return func(r *Reconciler) error {
 		r.extensions.register(e)
