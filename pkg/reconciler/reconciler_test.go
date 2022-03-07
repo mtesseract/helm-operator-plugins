@@ -482,6 +482,33 @@ var _ = Describe("Reconciler", func() {
 			cancel()
 		})
 
+		When("an extension fails", func() {
+			It("subsequent extensions are not executed", func() {
+				var (
+					failingPreReconciliationExtCalled    bool
+					succeedingPreReconciliationExtCalled bool
+				)
+
+				failingPreReconciliationExt := &textExtension{f: func() error {
+					failingPreReconciliationExtCalled = true
+					return errors.New("error!")
+				}}
+
+				succeedingPreReconciliationExt := &textExtension{f: func() error {
+					succeedingPreReconciliationExtCalled = true
+					return nil
+				}}
+
+				r.extensions.register(failingPreReconciliationExt)
+				r.extensions.register(succeedingPreReconciliationExt)
+
+				err := r.extPreReconcile(ctx, &unstructured.Unstructured{}, release.Release{}, nil)
+				Expect(err).To(HaveOccurred())
+				Expect(failingPreReconciliationExtCalled).To(BeTrue())
+				Expect(succeedingPreReconciliationExtCalled).To(BeFalse())
+			})
+		})
+
 		When("requested CR is not found", func() {
 			It("returns successfully with no action", func() {
 				res, err := r.Reconcile(ctx, req)
@@ -1395,3 +1422,13 @@ func verifyEvent(ctx context.Context, cl client.Reader, obj metav1.Object, event
 	Reason: %q
 	Message: %q`, eventType, reason, message))
 }
+
+type textExtension struct {
+	f func() error
+}
+
+func (e *textExtension) PreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
+	return e.f()
+}
+
+var _ extension.PreReconciliationExtension = (*textExtension)(nil)

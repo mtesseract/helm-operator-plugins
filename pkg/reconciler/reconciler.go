@@ -520,6 +520,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	}
 	u.UpdateStatus(updater.EnsureCondition(conditions.Initialized(corev1.ConditionTrue, "", "")))
 
+	r.extensions.injectLoggerIntoAll(log)
+
+	if obj.GetDeletionTimestamp() != nil {
+		err := r.extPreUninstall(ctx, obj)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("PreDeletionExtension failed: %v", err)
+		}
+		err = r.handleDeletion(ctx, actionClient, obj, log)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		err = r.extPostUninstall(ctx, obj)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("PostUninstall extension failed: %v", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
 	vals, err := r.getValues(ctx, obj)
 	if err != nil {
 		u.UpdateStatus(
@@ -529,22 +547,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, err
 	}
 
-	rel, state, releaseStateErr := r.getReleaseState(actionClient, obj, vals.AsMap())
-	release := release.Release{}
-	if rel != nil {
-		release = *rel
-	}
-
-	if obj.GetDeletionTimestamp() != nil {
-		err := r.extPreDelete(ctx, obj, release, vals)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("PreDeletionExtension failed: %v", err)
-		}
-		err = r.handleDeletion(ctx, actionClient, obj, log)
-		return ctrl.Result{}, err
-	}
-
-	err = releaseStateErr
+	rel, state, err := r.getReleaseState(actionClient, obj, vals.AsMap())
 	if err != nil {
 		u.UpdateStatus(
 			updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionTrue, conditions.ReasonErrorGettingReleaseState, err)),
@@ -554,13 +557,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		)
 		return ctrl.Result{}, err
 	}
-	u.UpdateStatus(updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
+	release := release.Release{}
+	if rel != nil {
+		release = *rel
+	}
 
-	r.extensions.loggerInto(log)
+	u.UpdateStatus(updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
 
 	err = r.extPreReconcile(ctx, obj, release, vals)
 	if err != nil {
-		log.Error(err, "pre-release hook failed")
+		return ctrl.Result{}, fmt.Errorf("PreReconciliation extension failed: %v", err)
 	}
 
 	switch state {
@@ -586,7 +592,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	err = r.extPostReconcile(ctx, obj, *rel, vals)
 	if err != nil {
-		log.Error(err, "post-release hook failed", "name", rel.Name, "version", rel.Version)
+		return ctrl.Result{}, fmt.Errorf("PostReconciliation extension failed: %v", err)
 	}
 
 	ensureDeployedRelease(&u, rel)

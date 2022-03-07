@@ -24,6 +24,7 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 )
 
 type PreHookFunc struct {
@@ -31,15 +32,45 @@ type PreHookFunc struct {
 	log *logr.Logger
 }
 
-func NewPreHookFunc(f func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error) PreHookFunc {
+func NewPreHookFunc(f func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error) *PreHookFunc {
 	log := logr.Discard()
-	return PreHookFunc{f: f, log: &log}
+	wrappedF := func(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values, log logr.Logger) error {
+		err := f(ctx, obj, rel, vals, log)
+		if err != nil {
+			log.Error(err, "pre-release hook failed")
+		}
+		return nil
+	}
+
+	return &PreHookFunc{f: wrappedF, log: &log}
 }
 
-func NewPostHookFunc(f func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error) PostHookFunc {
-	log := logr.Discard()
-	return PostHookFunc{f: f, log: &log}
+func (h *PreHookFunc) InjectLogger(l logr.Logger) error {
+	h.log = &l
+	return nil
 }
+
+var _ inject.Logger = (*PreHookFunc)(nil)
+
+func NewPostHookFunc(f func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error) *PostHookFunc {
+	log := logr.Discard()
+	wrappedF := func(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values, log logr.Logger) error {
+		err := f(ctx, obj, rel, vals, log)
+		if err != nil {
+			log.Error(err, "post-release hook failed", "name", rel.Name, "version", rel.Version)
+		}
+		return nil
+	}
+
+	return &PostHookFunc{f: wrappedF, log: &log}
+}
+
+func (h *PostHookFunc) InjectLogger(l logr.Logger) error {
+	h.log = &l
+	return nil
+}
+
+var _ inject.Logger = (*PostHookFunc)(nil)
 
 type PreHook interface {
 	extension.PreReconciliationExtension
@@ -49,7 +80,7 @@ type PostHook interface {
 	extension.PostReconciliationExtension
 }
 
-func (h PreHookFunc) PreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
+func (h *PreHookFunc) PreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
 	log := h.log
 	if log == nil {
 		sink := logr.Discard()
@@ -58,12 +89,14 @@ func (h PreHookFunc) PreReconcile(ctx context.Context, obj *unstructured.Unstruc
 	return h.f(ctx, obj, release, vals, *log)
 }
 
+var _ extension.PreReconciliationExtension = (*PreHookFunc)(nil)
+
 type PostHookFunc struct {
 	f   func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error
 	log *logr.Logger
 }
 
-func (h PostHookFunc) PostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values) error {
+func (h *PostHookFunc) PostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values) error {
 	log := h.log
 	if log == nil {
 		sink := logr.Discard()
@@ -71,3 +104,5 @@ func (h PostHookFunc) PostReconcile(ctx context.Context, obj *unstructured.Unstr
 	}
 	return h.f(ctx, obj, rel, vals, *log)
 }
+
+var _ extension.PostReconciliationExtension = (*PostHookFunc)(nil)

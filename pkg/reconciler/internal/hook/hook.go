@@ -31,10 +31,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/yaml"
 
 	"github.com/operator-framework/helm-operator-plugins/internal/sdk/controllerutil"
+	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	"github.com/operator-framework/helm-operator-plugins/pkg/hook"
 	"github.com/operator-framework/helm-operator-plugins/pkg/internal/predicate"
 	"github.com/operator-framework/helm-operator-plugins/pkg/manifestutil"
@@ -60,9 +62,14 @@ type dependentResourceWatcher struct {
 	log     *logr.Logger
 }
 
-func (d *dependentResourceWatcher) InjectLogger(l logr.Logger) {
+func (d *dependentResourceWatcher) InjectLogger(l logr.Logger) error {
 	d.log = &l
+	return nil
 }
+
+var _ inject.Logger = (*dependentResourceWatcher)(nil)
+
+var _ extension.PostReconciliationExtension = (*dependentResourceWatcher)(nil)
 
 func (d *dependentResourceWatcher) PostReconcile(ctx context.Context, owner *unstructured.Unstructured, rel release.Release, _ chartutil.Values) error {
 	// using predefined functions for filtering events

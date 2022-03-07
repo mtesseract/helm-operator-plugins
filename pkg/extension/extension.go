@@ -13,10 +13,15 @@ type Extension interface{}
 type PreReconciliationExtension interface {
 	PreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error
 }
-type PreDeletionExtension interface {
-	PreDelete(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error
-}
 
 type PostReconciliationExtension interface {
 	PostReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error
+}
+
+type PreUninstallExtension interface {
+	PreUninstall(ctx context.Context, obj *unstructured.Unstructured) error
+}
+
+type PostUninstallExtension interface {
+	PostUninstall(ctx context.Context, obj *unstructured.Unstructured) error
 }

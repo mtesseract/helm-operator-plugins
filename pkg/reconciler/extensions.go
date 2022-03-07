@@ -27,7 +27,7 @@ func (es *extensions) get(idx int) extension.Extension {
 	return es.extensions[idx]
 }
 
-func (es *extensions) iterate(f func(e extension.Extension) error) error {
+func (es *extensions) forEach(f func(e extension.Extension) error) error {
 	var err error
 	for _, e := range es.extensions {
 		err = f(e)
@@ -38,14 +38,14 @@ func (es *extensions) iterate(f func(e extension.Extension) error) error {
 	return err
 }
 
-func (es *extensions) loggerInto(l logr.Logger) {
+func (es *extensions) injectLoggerIntoAll(l logr.Logger) {
 	for _, ext := range es.extensions {
 		inject.LoggerInto(l, ext)
 	}
 }
 
 func (r *Reconciler) extPreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
-	return r.extensions.iterate(func(ext extension.Extension) error {
+	return r.extensions.forEach(func(ext extension.Extension) error {
 		e, ok := ext.(extension.PreReconciliationExtension)
 		if !ok {
 			return nil
@@ -54,22 +54,33 @@ func (r *Reconciler) extPreReconcile(ctx context.Context, obj *unstructured.Unst
 	})
 }
 
-func (r *Reconciler) extPreDelete(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
-	return r.extensions.iterate(func(ext extension.Extension) error {
-		e, ok := ext.(extension.PreDeletionExtension)
+func (r *Reconciler) extPreUninstall(ctx context.Context, obj *unstructured.Unstructured) error {
+	return r.extensions.forEach(func(ext extension.Extension) error {
+		e, ok := ext.(extension.PreUninstallExtension)
 		if !ok {
 			return nil
 		}
-		return e.PreDelete(ctx, obj, release, vals)
+		return e.PreUninstall(ctx, obj)
+	})
+}
+
+func (r *Reconciler) extPostUninstall(ctx context.Context, obj *unstructured.Unstructured) error {
+	return r.extensions.forEach(func(ext extension.Extension) error {
+		e, ok := ext.(extension.PostUninstallExtension)
+		if !ok {
+			return nil
+		}
+		return e.PostUninstall(ctx, obj)
 	})
 }
 
 func (r *Reconciler) extPostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values) error {
-	return r.extensions.iterate(func(ext extension.Extension) error {
+	return r.extensions.forEach(func(ext extension.Extension) error {
 		e, ok := ext.(extension.PostReconciliationExtension)
 		if !ok {
 			return nil
 		}
+
 		return e.PostReconcile(ctx, obj, rel, vals)
 	})
 }
