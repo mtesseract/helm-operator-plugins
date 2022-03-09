@@ -28,14 +28,14 @@ import (
 )
 
 type PreHookFunc struct {
-	f   func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error
+	f   func(context.Context, *unstructured.Unstructured, logr.Logger) error
 	log *logr.Logger
 }
 
-func NewPreHookFunc(f func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error) *PreHookFunc {
+func NewPreHookFunc(f func(context.Context, *unstructured.Unstructured, logr.Logger) error) *PreHookFunc {
 	log := logr.Discard()
-	wrappedF := func(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values, log logr.Logger) error {
-		err := f(ctx, obj, rel, vals, log)
+	wrappedF := func(ctx context.Context, obj *unstructured.Unstructured, log logr.Logger) error {
+		err := f(ctx, obj, log)
 		if err != nil {
 			log.Error(err, "pre-release hook failed")
 		}
@@ -80,13 +80,13 @@ type PostHook interface {
 	extension.PostReconciliationExtension
 }
 
-func (h *PreHookFunc) PreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
+func (h *PreHookFunc) PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
 	log := h.log
 	if log == nil {
 		sink := logr.Discard()
 		log = &sink
 	}
-	return h.f(ctx, obj, release, vals, *log)
+	return h.f(ctx, obj, *log)
 }
 
 var _ extension.PreReconciliationExtension = (*PreHookFunc)(nil)

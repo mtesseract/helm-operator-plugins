@@ -522,6 +522,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	r.extensions.injectLoggerIntoAll(log)
 
+	err = r.extPreReconcile(ctx, obj)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("PreReconciliation extension failed: %v", err)
+	}
+
 	if obj.GetDeletionTimestamp() != nil {
 		err := r.extPreUninstall(ctx, obj)
 		if err != nil {
@@ -557,17 +562,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		)
 		return ctrl.Result{}, err
 	}
-	release := release.Release{}
-	if rel != nil {
-		release = *rel
-	}
-
 	u.UpdateStatus(updater.EnsureCondition(conditions.Irreconcilable(corev1.ConditionFalse, "", "")))
-
-	err = r.extPreReconcile(ctx, obj, release, vals)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("PreReconciliation extension failed: %v", err)
-	}
 
 	switch state {
 	case stateNeedsInstall:

@@ -340,7 +340,7 @@ var _ = Describe("Reconciler", func() {
 		var _ = Describe("WithPreHook", func() {
 			It("should set a reconciler prehook", func() {
 				called := false
-				preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
+				preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, logr.Logger) error {
 					called = true
 					return nil
 				})
@@ -348,7 +348,7 @@ var _ = Describe("Reconciler", func() {
 				Expect(WithPreHook(preHook)(r)).To(Succeed())
 				Expect(r.extensions.len()).To(Equal(nExtensions + 1))
 				hook := r.extensions.get(nExtensions).(extension.PreReconciliationExtension)
-				Expect(hook.PreReconcile(context.TODO(), nil, release.Release{}, nil)).To(Succeed())
+				Expect(hook.PreReconcile(context.TODO(), nil)).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
 		})
@@ -502,7 +502,7 @@ var _ = Describe("Reconciler", func() {
 				r.extensions.register(failingPreReconciliationExt)
 				r.extensions.register(succeedingPreReconciliationExt)
 
-				err := r.extPreReconcile(ctx, &unstructured.Unstructured{}, release.Release{}, nil)
+				err := r.extPreReconcile(ctx, &unstructured.Unstructured{})
 				Expect(err).To(HaveOccurred())
 				Expect(failingPreReconciliationExtCalled).To(BeTrue())
 				Expect(succeedingPreReconciliationExtCalled).To(BeFalse())
@@ -1386,7 +1386,7 @@ func verifyNoRelease(ctx context.Context, cl client.Client, ns string, name stri
 func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request) {
 	buf := &bytes.Buffer{}
 	By("setting up a pre and post hook", func() {
-		preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
+		preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, logr.Logger) error {
 			return errors.New("pre hook foobar")
 		})
 		postHook := hook.NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
@@ -1427,7 +1427,7 @@ type textExtension struct {
 	f func() error
 }
 
-func (e *textExtension) PreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
+func (e *textExtension) PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
 	return e.f()
 }
 

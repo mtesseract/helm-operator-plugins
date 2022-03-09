@@ -11,7 +11,7 @@ import (
 type Extension interface{}
 
 type PreReconciliationExtension interface {
-	PreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error
+	PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error
 }
 
 type PostReconciliationExtension interface {

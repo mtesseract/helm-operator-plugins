@@ -44,13 +44,13 @@ func (es *extensions) injectLoggerIntoAll(l logr.Logger) {
 	}
 }
 
-func (r *Reconciler) extPreReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
+func (r *Reconciler) extPreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
 	return r.extensions.forEach(func(ext extension.Extension) error {
 		e, ok := ext.(extension.PreReconciliationExtension)
 		if !ok {
 			return nil
 		}
-		return e.PreReconcile(ctx, obj, release, vals)
+		return e.PreReconcile(ctx, obj)
 	})
 }
 
