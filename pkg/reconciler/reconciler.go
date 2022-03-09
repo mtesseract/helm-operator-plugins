@@ -368,7 +368,7 @@ func WithUninstallAnnotations(as ...annotation.Uninstall) Option {
 // to implement an extension interface. There are several extension interfaces and
 // an extension may implement any extension interfaces that are required for the
 // specific feature.
-func WithExtension(e extension.Extension) Option {
+func WithExtension(e extension.ReconcilerExtension) Option {
 	return func(r *Reconciler) error {
 		r.extensions.register(e)
 		return nil
@@ -378,13 +378,15 @@ func WithExtension(e extension.Extension) Option {
 // WithPreHook is an Option that configures the reconciler to run the given
 // PreHook just before performing any actions (e.g. install, upgrade, uninstall,
 // or reconciliation).
-func WithPreHook(h hook.PreHook) Option {
+func WithPreHook(f hook.PreHookFunc) Option {
+	h := hook.PreHook{F: hook.WrapPreHookFunc(f)}
 	return WithExtension(h)
 }
 
 // WithPostHook is an Option that configures the reconciler to run the given
 // PostHook just after performing any non-uninstall release actions.
-func WithPostHook(h hook.PostHook) Option {
+func WithPostHook(f hook.PostHookFunc) Option {
+	h := hook.PostHook{F: hook.WrapPostHookFunc(f)}
 	return WithExtension(h)
 }
 
@@ -527,19 +529,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	}
 
 	if obj.GetDeletionTimestamp() != nil {
-		err := r.extPreUninstall(ctx, obj)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("PreDeletionExtension failed: %v", err)
-		}
-		err = r.handleDeletion(ctx, actionClient, obj, log)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		err = r.extPostUninstall(ctx, obj)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("PostUninstall extension failed: %v", err)
-		}
-		return ctrl.Result{}, nil
+		err := r.handleDeletion(ctx, actionClient, obj, log)
+		return ctrl.Result{}, err
 	}
 
 	vals, err := r.getValues(ctx, obj)

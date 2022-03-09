@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
-	"github.com/operator-framework/helm-operator-plugins/pkg/hook"
+	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	"github.com/operator-framework/helm-operator-plugins/pkg/internal/fake"
 	internalhook "github.com/operator-framework/helm-operator-plugins/pkg/reconciler/internal/hook"
 )
@@ -37,7 +37,7 @@ import (
 var _ = Describe("Hook", func() {
 	Describe("dependentResourceWatcher", func() {
 		var (
-			drw   hook.PostHook
+			drw   extension.ReconcilerExtension
 			c     *fake.Controller
 			rm    *meta.DefaultRESTMapper
 			owner *unstructured.Unstructured

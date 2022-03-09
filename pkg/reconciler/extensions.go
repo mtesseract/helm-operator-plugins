@@ -10,10 +10,10 @@ import (
 )
 
 type extensions struct {
-	extensions []extension.Extension
+	extensions []extension.ReconcilerExtension
 }
 
-func (es *extensions) register(e extension.Extension) {
+func (es *extensions) register(e extension.ReconcilerExtension) {
 	es.extensions = append(es.extensions, e)
 }
 
@@ -21,11 +21,11 @@ func (es *extensions) len() int {
 	return len(es.extensions)
 }
 
-func (es *extensions) get(idx int) extension.Extension {
+func (es *extensions) get(idx int) extension.ReconcilerExtension {
 	return es.extensions[idx]
 }
 
-func (es *extensions) forEach(f func(e extension.Extension) error) error {
+func (es *extensions) forEach(f func(e extension.ReconcilerExtension) error) error {
 	var err error
 	for _, e := range es.extensions {
 		err = f(e)
@@ -37,7 +37,7 @@ func (es *extensions) forEach(f func(e extension.Extension) error) error {
 }
 
 func (r *Reconciler) extPreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
-	return r.extensions.forEach(func(ext extension.Extension) error {
+	return r.extensions.forEach(func(ext extension.ReconcilerExtension) error {
 		e, ok := ext.(extension.PreReconciliationExtension)
 		if !ok {
 			return nil
@@ -46,28 +46,8 @@ func (r *Reconciler) extPreReconcile(ctx context.Context, obj *unstructured.Unst
 	})
 }
 
-func (r *Reconciler) extPreUninstall(ctx context.Context, obj *unstructured.Unstructured) error {
-	return r.extensions.forEach(func(ext extension.Extension) error {
-		e, ok := ext.(extension.PreUninstallExtension)
-		if !ok {
-			return nil
-		}
-		return e.PreUninstall(ctx, obj)
-	})
-}
-
-func (r *Reconciler) extPostUninstall(ctx context.Context, obj *unstructured.Unstructured) error {
-	return r.extensions.forEach(func(ext extension.Extension) error {
-		e, ok := ext.(extension.PostUninstallExtension)
-		if !ok {
-			return nil
-		}
-		return e.PostUninstall(ctx, obj)
-	})
-}
-
 func (r *Reconciler) extPostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values) error {
-	return r.extensions.forEach(func(ext extension.Extension) error {
+	return r.extensions.forEach(func(ext extension.ReconcilerExtension) error {
 		e, ok := ext.(extension.PostReconciliationExtension)
 		if !ok {
 			return nil

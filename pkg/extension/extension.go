@@ -8,7 +8,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-type Extension interface{}
+type ReconcilerExtension interface {
+	PreReconciliationExtension
+	PostReconciliationExtension
+}
 
 type PreReconciliationExtension interface {
 	PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error
@@ -18,10 +21,12 @@ type PostReconciliationExtension interface {
 	PostReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error
 }
 
-type PreUninstallExtension interface {
-	PreUninstall(ctx context.Context, obj *unstructured.Unstructured) error
+type NoOpReconcilerExtension struct{}
+
+func (e NoOpReconcilerExtension) PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
+	return nil
 }
 
-type PostUninstallExtension interface {
-	PostUninstall(ctx context.Context, obj *unstructured.Unstructured) error
+func (e NoOpReconcilerExtension) PostReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
+	return nil
 }

@@ -340,7 +340,7 @@ var _ = Describe("Reconciler", func() {
 		var _ = Describe("WithPreHook", func() {
 			It("should set a reconciler prehook", func() {
 				called := false
-				preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, logr.Logger) error {
+				preHook := hook.PreHookFunc(func(context.Context, *unstructured.Unstructured, logr.Logger) error {
 					called = true
 					return nil
 				})
@@ -355,7 +355,7 @@ var _ = Describe("Reconciler", func() {
 		var _ = Describe("WithPostHook", func() {
 			It("should set a reconciler posthook", func() {
 				called := false
-				postHook := hook.NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
+				postHook := hook.PostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 					called = true
 					return nil
 				})
@@ -489,12 +489,12 @@ var _ = Describe("Reconciler", func() {
 					succeedingPreReconciliationExtCalled bool
 				)
 
-				failingPreReconciliationExt := &textExtension{f: func() error {
+				failingPreReconciliationExt := &testPreReconcileExtension{f: func() error {
 					failingPreReconciliationExtCalled = true
 					return errors.New("error!")
 				}}
 
-				succeedingPreReconciliationExt := &textExtension{f: func() error {
+				succeedingPreReconciliationExt := &testPreReconcileExtension{f: func() error {
 					succeedingPreReconciliationExtCalled = true
 					return nil
 				}}
@@ -1386,15 +1386,15 @@ func verifyNoRelease(ctx context.Context, cl client.Client, ns string, name stri
 func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request) {
 	buf := &bytes.Buffer{}
 	By("setting up a pre and post hook", func() {
-		preHook := hook.NewPreHookFunc(func(context.Context, *unstructured.Unstructured, logr.Logger) error {
+		preHook := func(context.Context, *unstructured.Unstructured, logr.Logger) error {
 			return errors.New("pre hook foobar")
-		})
-		postHook := hook.NewPostHookFunc(func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
+		}
+		postHook := func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 			return errors.New("post hook foobar")
-		})
+		}
 		r.log = zap.New(zap.WriteTo(buf))
-		r.extensions.register(preHook)
-		r.extensions.register(postHook)
+		r.extensions.register(hook.PreHook{F: hook.WrapPreHookFunc(preHook)})
+		r.extensions.register(hook.PostHook{F: hook.WrapPostHookFunc(postHook)})
 	})
 	By("successfully reconciling a request", func() {
 		res, err := r.Reconcile(ctx, req)
@@ -1423,12 +1423,11 @@ func verifyEvent(ctx context.Context, cl client.Reader, obj metav1.Object, event
 	Message: %q`, eventType, reason, message))
 }
 
-type textExtension struct {
+type testPreReconcileExtension struct {
 	f func() error
+	extension.NoOpReconcilerExtension
 }
 
-func (e *textExtension) PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
+func (e *testPreReconcileExtension) PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
 	return e.f()
 }
-
-var _ extension.PreReconciliationExtension = (*textExtension)(nil)

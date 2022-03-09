@@ -36,12 +36,11 @@ import (
 
 	"github.com/operator-framework/helm-operator-plugins/internal/sdk/controllerutil"
 	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
-	"github.com/operator-framework/helm-operator-plugins/pkg/hook"
 	"github.com/operator-framework/helm-operator-plugins/pkg/internal/predicate"
 	"github.com/operator-framework/helm-operator-plugins/pkg/manifestutil"
 )
 
-func NewDependentResourceWatcher(c controller.Controller, rm meta.RESTMapper) hook.PostHook {
+func NewDependentResourceWatcher(c controller.Controller, rm meta.RESTMapper) extension.ReconcilerExtension {
 	return &dependentResourceWatcher{
 		controller: c,
 		restMapper: rm,
@@ -56,6 +55,8 @@ type dependentResourceWatcher struct {
 
 	m       sync.Mutex
 	watches map[schema.GroupVersionKind]struct{}
+
+	extension.NoOpReconcilerExtension
 }
 
 var _ extension.PostReconciliationExtension = (*dependentResourceWatcher)(nil)
