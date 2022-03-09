@@ -3,12 +3,10 @@ package reconciler
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 )
 
 type extensions struct {
@@ -36,12 +34,6 @@ func (es *extensions) forEach(f func(e extension.Extension) error) error {
 		}
 	}
 	return err
-}
-
-func (es *extensions) injectLoggerIntoAll(l logr.Logger) {
-	for _, ext := range es.extensions {
-		inject.LoggerInto(l, ext)
-	}
 }
 
 func (r *Reconciler) extPreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {

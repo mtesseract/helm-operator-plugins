@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/yaml"
 
@@ -43,13 +42,11 @@ import (
 )
 
 func NewDependentResourceWatcher(c controller.Controller, rm meta.RESTMapper) hook.PostHook {
-	sink := logr.Discard()
 	return &dependentResourceWatcher{
 		controller: c,
 		restMapper: rm,
 		m:          sync.Mutex{},
 		watches:    make(map[schema.GroupVersionKind]struct{}),
-		log:        &sink,
 	}
 }
 
@@ -59,19 +56,13 @@ type dependentResourceWatcher struct {
 
 	m       sync.Mutex
 	watches map[schema.GroupVersionKind]struct{}
-	log     *logr.Logger
 }
-
-func (d *dependentResourceWatcher) InjectLogger(l logr.Logger) error {
-	d.log = &l
-	return nil
-}
-
-var _ inject.Logger = (*dependentResourceWatcher)(nil)
 
 var _ extension.PostReconciliationExtension = (*dependentResourceWatcher)(nil)
 
 func (d *dependentResourceWatcher) PostReconcile(ctx context.Context, owner *unstructured.Unstructured, rel release.Release, _ chartutil.Values) error {
+	log := logr.FromContextOrDiscard(ctx)
+
 	// using predefined functions for filtering events
 	dependentPredicate := predicate.DependentPredicateFuncs()
 
@@ -124,7 +115,7 @@ func (d *dependentResourceWatcher) PostReconcile(ctx context.Context, owner *uns
 			}
 
 			d.watches[depGVK] = struct{}{}
-			d.log.V(1).Info("Watching dependent resource", "dependentAPIVersion", depGVK.GroupVersion(), "dependentKind", depGVK.Kind)
+			log.V(1).Info("Watching dependent resource", "dependentAPIVersion", depGVK.GroupVersion(), "dependentKind", depGVK.Kind)
 			return nil
 		}
 

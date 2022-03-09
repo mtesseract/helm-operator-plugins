@@ -464,6 +464,7 @@ func WithSelector(s metav1.LabelSelector) Option {
 //   - Irreconcilable - an error occurred during reconciliation
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, err error) {
 	log := r.log.WithValues(strings.ToLower(r.gvk.Kind), req.NamespacedName)
+	ctx = logr.NewContext(ctx, log)
 
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(*r.gvk)
@@ -519,8 +520,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		ensureDeployedRelease(&u, rel)
 	}
 	u.UpdateStatus(updater.EnsureCondition(conditions.Initialized(corev1.ConditionTrue, "", "")))
-
-	r.extensions.injectLoggerIntoAll(log)
 
 	err = r.extPreReconcile(ctx, obj)
 	if err != nil {
