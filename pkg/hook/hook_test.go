@@ -28,19 +28,17 @@ import (
 
 	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	"github.com/operator-framework/helm-operator-plugins/pkg/hook"
-	. "github.com/operator-framework/helm-operator-plugins/pkg/hook"
 )
 
 var _ = Describe("Hook", func() {
 	var _ = Describe("PreHookFunc", func() {
 		It("should implement the PreHook interface", func() {
 			called := false
-			var h extension.PreReconciliationExtension = hook.PreHook{
-				F: func(context.Context, *unstructured.Unstructured, logr.Logger) error {
+			var h extension.ReconcilerExtension = hook.PreHookFunc(
+				func(context.Context, *unstructured.Unstructured, logr.Logger) error {
 					called = true
 					return nil
-				},
-			}
+				})
 			Expect(h.PreReconcile(context.TODO(), nil, nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
@@ -48,12 +46,11 @@ var _ = Describe("Hook", func() {
 	var _ = Describe("PostHookFunc", func() {
 		It("should implement the PostHook interface", func() {
 			called := false
-			var h PostHook = hook.PostHook{
-				F: func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
+			var h extension.ReconcilerExtension = hook.PostHookFunc(
+				func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error {
 					called = true
 					return nil
-				},
-			}
+				})
 			Expect(h.PostReconcile(context.TODO(), nil, nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})

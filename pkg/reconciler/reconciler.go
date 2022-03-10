@@ -379,15 +379,13 @@ func WithExtension(e extension.ReconcilerExtension) Option {
 // PreHook just before performing any actions (e.g. install, upgrade, uninstall,
 // or reconciliation).
 func WithPreHook(f hook.PreHookFunc) Option {
-	h := hook.PreHook{F: hook.WrapPreHookFunc(f)}
-	return WithExtension(h)
+	return WithExtension(hook.WrapPreHookFunc(f))
 }
 
 // WithPostHook is an Option that configures the reconciler to run the given
 // PostHook just after performing any non-uninstall release actions.
 func WithPostHook(f hook.PostHookFunc) Option {
-	h := hook.PostHook{F: hook.WrapPostHookFunc(f)}
-	return WithExtension(h)
+	return WithExtension(hook.WrapPostHookFunc(f))
 }
 
 // WithValueTranslator is an Option that configures a function that translates a

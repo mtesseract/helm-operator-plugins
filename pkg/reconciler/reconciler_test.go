@@ -1393,8 +1393,8 @@ func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request
 			return errors.New("post hook foobar")
 		}
 		r.log = zap.New(zap.WriteTo(buf))
-		r.extensions = append(r.extensions, hook.PreHook{F: hook.WrapPreHookFunc(preHook)})
-		r.extensions = append(r.extensions, hook.PostHook{F: hook.WrapPostHookFunc(postHook)})
+		r.extensions = append(r.extensions, hook.PreHookFunc(hook.WrapPreHookFunc(preHook)))
+		r.extensions = append(r.extensions, hook.PostHookFunc(hook.WrapPostHookFunc(postHook)))
 	})
 	By("successfully reconciling a request", func() {
 		res, err := r.Reconcile(ctx, req)
