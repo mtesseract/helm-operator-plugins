@@ -10,16 +10,16 @@ import (
 )
 
 type ReconcilerExtension interface {
-	PreReconciliationExtension
-	PostReconciliationExtension
+	BeginReconciliationExtension
+	EndReconciliationExtension
 }
 
-type PreReconciliationExtension interface {
-	PreReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error
+type BeginReconciliationExtension interface {
+	BeginReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error
 }
 
-type PostReconciliationExtension interface {
-	PostReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error
+type EndReconciliationExtension interface {
+	EndReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error
 }
 
 type NoOpReconcilerExtension struct{}
@@ -51,10 +51,10 @@ func (c *Context) GetKubernetesConfig() *rest.Config {
 	return c.KubernetesConfig
 }
 
-func (e NoOpReconcilerExtension) PreReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error {
+func (e NoOpReconcilerExtension) BeginReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error {
 	return nil
 }
 
-func (e NoOpReconcilerExtension) PostReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error {
+func (e NoOpReconcilerExtension) EndReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error {
 	return nil
 }

@@ -52,12 +52,12 @@ func WrapPostHookFunc(f PostHookFunc) PostHookFunc {
 	return PostHookFunc(wrappedF)
 }
 
-func (h PreHookFunc) PreReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
+func (h PreHookFunc) BeginReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
 	return h(ctx, obj, log)
 }
 
-func (h PreHookFunc) PostReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
+func (h PreHookFunc) EndReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	return nil
 }
 
@@ -65,11 +65,11 @@ var _ extension.ReconcilerExtension = (PreHookFunc)(nil)
 
 type PostHookFunc func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error
 
-func (f PostHookFunc) PreReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
+func (f PostHookFunc) BeginReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	return nil
 }
 
-func (f PostHookFunc) PostReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
+func (f PostHookFunc) EndReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
 	return f(ctx, obj, reconciliationContext.GetHelmRelease(), reconciliationContext.GetHelmValues(), log)
 }

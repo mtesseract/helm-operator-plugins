@@ -57,9 +57,9 @@ type dependentResourceWatcher struct {
 	extension.NoOpReconcilerExtension
 }
 
-var _ extension.PostReconciliationExtension = (*dependentResourceWatcher)(nil)
+var _ extension.EndReconciliationExtension = (*dependentResourceWatcher)(nil)
 
-func (d *dependentResourceWatcher) PostReconcile(ctx context.Context, reconciliationContext *extension.Context, owner *unstructured.Unstructured) error {
+func (d *dependentResourceWatcher) EndReconcile(ctx context.Context, reconciliationContext *extension.Context, owner *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
 	rel := reconciliationContext.GetHelmRelease()
 

@@ -523,14 +523,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	reconciliationContext := extension.Context{}
 
-	err = r.extPreReconcile(ctx, &reconciliationContext, obj)
+	err = r.extBeginReconcile(ctx, &reconciliationContext, obj)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("PreReconciliation extension failed: %v", err)
 	}
 
 	if obj.GetDeletionTimestamp() != nil {
 		err := r.handleDeletion(ctx, actionClient, obj, log)
-		return ctrl.Result{}, err
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		err = r.extEndReconcile(ctx, &reconciliationContext, obj)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("PreReconciliation extension failed: %v", err)
+		}
+		return ctrl.Result{}, nil
 	}
 
 	vals, err := r.getValues(ctx, obj)
@@ -578,7 +585,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	reconciliationContext.HelmRelease = rel
 	reconciliationContext.HelmValues = vals
 
-	err = r.extPostReconcile(ctx, &reconciliationContext, obj)
+	err = r.extEndReconcile(ctx, &reconciliationContext, obj)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("PostReconciliation extension failed: %v", err)
 	}

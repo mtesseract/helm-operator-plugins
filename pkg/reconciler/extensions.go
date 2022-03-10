@@ -20,23 +20,23 @@ func (es extensions) forEach(f func(e extension.ReconcilerExtension) error) erro
 	return err
 }
 
-func (r *Reconciler) extPreReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
+func (r *Reconciler) extBeginReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	return r.extensions.forEach(func(ext extension.ReconcilerExtension) error {
-		e, ok := ext.(extension.PreReconciliationExtension)
+		e, ok := ext.(extension.BeginReconciliationExtension)
 		if !ok {
 			return nil
 		}
-		return e.PreReconcile(ctx, reconciliationContext, obj)
+		return e.BeginReconcile(ctx, reconciliationContext, obj)
 	})
 }
 
-func (r *Reconciler) extPostReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
+func (r *Reconciler) extEndReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	return r.extensions.forEach(func(ext extension.ReconcilerExtension) error {
-		e, ok := ext.(extension.PostReconciliationExtension)
+		e, ok := ext.(extension.EndReconciliationExtension)
 		if !ok {
 			return nil
 		}
 
-		return e.PostReconcile(ctx, reconciliationContext, obj)
+		return e.EndReconcile(ctx, reconciliationContext, obj)
 	})
 }
