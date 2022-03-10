@@ -44,6 +44,13 @@ func (c *Context) GetHelmValues() chartutil.Values {
 	return c.HelmValues
 }
 
+func (c *Context) GetKubernetesConfig() *rest.Config {
+	if c == nil {
+		return nil
+	}
+	return c.KubernetesConfig
+}
+
 func (e NoOpReconcilerExtension) PreReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error {
 	return nil
 }
