@@ -62,12 +62,12 @@ type PostHook struct {
 	extension.NoOpReconcilerExtension
 }
 
-func (h PreHookFunc) PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
+func (h PreHookFunc) PreReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
 	return h(ctx, obj, log)
 }
 
-func (h PreHook) PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
+func (h PreHook) PreReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
 	return h.F(ctx, obj, log)
 }
@@ -76,14 +76,14 @@ var _ extension.ReconcilerExtension = (*PreHook)(nil)
 
 type PostHookFunc func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error
 
-func (f PostHookFunc) PostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values) error {
+func (f PostHookFunc) PostReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
-	return f(ctx, obj, rel, vals, log)
+	return f(ctx, obj, reconciliationContext.GetHelmRelease(), reconciliationContext.GetHelmValues(), log)
 }
 
-func (h PostHook) PostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values) error {
+func (h PostHook) PostReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
-	return h.F(ctx, obj, rel, vals, log)
+	return h.F(ctx, obj, reconciliationContext.GetHelmRelease(), reconciliationContext.GetHelmValues(), log)
 }
 
 var _ extension.ReconcilerExtension = (*PostHook)(nil)

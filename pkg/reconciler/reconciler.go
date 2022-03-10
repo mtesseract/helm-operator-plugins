@@ -523,7 +523,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 	}
 	u.UpdateStatus(updater.EnsureCondition(conditions.Initialized(corev1.ConditionTrue, "", "")))
 
-	err = r.extPreReconcile(ctx, obj)
+	reconciliationContext := extension.Context{}
+
+	err = r.extPreReconcile(ctx, &reconciliationContext, obj)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("PreReconciliation extension failed: %v", err)
 	}
@@ -575,7 +577,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		return ctrl.Result{}, fmt.Errorf("unexpected release state: %s", state)
 	}
 
-	err = r.extPostReconcile(ctx, obj, *rel, vals)
+	reconciliationContext.HelmRelease = rel
+	reconciliationContext.HelmValues = vals
+
+	err = r.extPostReconcile(ctx, &reconciliationContext, obj)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("PostReconciliation extension failed: %v", err)
 	}

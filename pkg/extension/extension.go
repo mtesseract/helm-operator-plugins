@@ -6,6 +6,7 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/rest"
 )
 
 type ReconcilerExtension interface {
@@ -14,19 +15,39 @@ type ReconcilerExtension interface {
 }
 
 type PreReconciliationExtension interface {
-	PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error
+	PreReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error
 }
 
 type PostReconciliationExtension interface {
-	PostReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error
+	PostReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error
 }
 
 type NoOpReconcilerExtension struct{}
 
-func (e NoOpReconcilerExtension) PreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
+type Context struct {
+	KubernetesConfig *rest.Config
+	HelmRelease      *release.Release
+	HelmValues       chartutil.Values
+}
+
+func (c *Context) GetHelmRelease() release.Release {
+	if c == nil || c.HelmRelease == nil {
+		return release.Release{}
+	}
+	return *c.HelmRelease
+}
+
+func (c *Context) GetHelmValues() chartutil.Values {
+	if c == nil {
+		return nil
+	}
+	return c.HelmValues
+}
+
+func (e NoOpReconcilerExtension) PreReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error {
 	return nil
 }
 
-func (e NoOpReconcilerExtension) PostReconcile(ctx context.Context, obj *unstructured.Unstructured, release release.Release, vals chartutil.Values) error {
+func (e NoOpReconcilerExtension) PostReconcile(ctx context.Context, reconciliationContext *Context, obj *unstructured.Unstructured) error {
 	return nil
 }

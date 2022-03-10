@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
-	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -22,23 +20,23 @@ func (es extensions) forEach(f func(e extension.ReconcilerExtension) error) erro
 	return err
 }
 
-func (r *Reconciler) extPreReconcile(ctx context.Context, obj *unstructured.Unstructured) error {
+func (r *Reconciler) extPreReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	return r.extensions.forEach(func(ext extension.ReconcilerExtension) error {
 		e, ok := ext.(extension.PreReconciliationExtension)
 		if !ok {
 			return nil
 		}
-		return e.PreReconcile(ctx, obj)
+		return e.PreReconcile(ctx, reconciliationContext, obj)
 	})
 }
 
-func (r *Reconciler) extPostReconcile(ctx context.Context, obj *unstructured.Unstructured, rel release.Release, vals chartutil.Values) error {
+func (r *Reconciler) extPostReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	return r.extensions.forEach(func(ext extension.ReconcilerExtension) error {
 		e, ok := ext.(extension.PostReconciliationExtension)
 		if !ok {
 			return nil
 		}
 
-		return e.PostReconcile(ctx, obj, rel, vals)
+		return e.PostReconcile(ctx, reconciliationContext, obj)
 	})
 }

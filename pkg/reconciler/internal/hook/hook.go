@@ -22,8 +22,6 @@ import (
 
 	"github.com/go-logr/logr"
 	sdkhandler "github.com/operator-framework/operator-lib/handler"
-	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/releaseutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -61,8 +59,9 @@ type dependentResourceWatcher struct {
 
 var _ extension.PostReconciliationExtension = (*dependentResourceWatcher)(nil)
 
-func (d *dependentResourceWatcher) PostReconcile(ctx context.Context, owner *unstructured.Unstructured, rel release.Release, _ chartutil.Values) error {
+func (d *dependentResourceWatcher) PostReconcile(ctx context.Context, reconciliationContext *extension.Context, owner *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
+	rel := reconciliationContext.GetHelmRelease()
 
 	// using predefined functions for filtering events
 	dependentPredicate := predicate.DependentPredicateFuncs()

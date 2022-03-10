@@ -68,18 +68,18 @@ var _ = Describe("Hook", func() {
 			})
 			It("should fail with an invalid release manifest", func() {
 				rel.Manifest = "---\nfoobar"
-				err := drw.PostReconcile(context.TODO(), owner, *rel, nil)
+				err := drw.PostReconcile(context.TODO(), &extension.Context{HelmRelease: rel}, owner)
 				Expect(err).NotTo(BeNil())
 			})
 			It("should fail with unknown owner kind", func() {
-				Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(MatchError(&meta.NoKindMatchError{
+				Expect(drw.PostReconcile(context.TODO(), &extension.Context{HelmRelease: rel}, owner)).To(MatchError(&meta.NoKindMatchError{
 					GroupKind:        schema.GroupKind{Group: "apps", Kind: "Deployment"},
 					SearchedVersions: []string{"v1"},
 				}))
 			})
 			It("should fail with unknown dependent kind", func() {
 				rm.Add(schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "Deployment"}, meta.RESTScopeNamespace)
-				Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(MatchError(&meta.NoKindMatchError{
+				Expect(drw.PostReconcile(context.TODO(), &extension.Context{HelmRelease: rel}, owner)).To(MatchError(&meta.NoKindMatchError{
 					GroupKind:        schema.GroupKind{Group: "apps", Kind: "ReplicaSet"},
 					SearchedVersions: []string{"v1"},
 				}))
@@ -109,7 +109,7 @@ var _ = Describe("Hook", func() {
 					Manifest: strings.Join([]string{clusterRole, clusterRole, rsOwnerNamespace, rsOwnerNamespace}, "---\n"),
 				}
 				drw = internalhook.NewDependentResourceWatcher(c, rm)
-				Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(Succeed())
+				Expect(drw.PostReconcile(context.TODO(), &extension.Context{HelmRelease: rel}, owner)).To(Succeed())
 				Expect(c.WatchCalls).To(HaveLen(2))
 				Expect(c.WatchCalls[0].Handler).To(BeAssignableToTypeOf(&handler.EnqueueRequestForOwner{}))
 				Expect(c.WatchCalls[1].Handler).To(BeAssignableToTypeOf(&handler.EnqueueRequestForOwner{}))
@@ -132,7 +132,7 @@ var _ = Describe("Hook", func() {
 						Manifest: strings.Join([]string{rsOwnerNamespace, ssOtherNamespace}, "---\n"),
 					}
 					drw = internalhook.NewDependentResourceWatcher(c, rm)
-					Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(Succeed())
+					Expect(drw.PostReconcile(context.TODO(), &extension.Context{HelmRelease: rel}, owner)).To(Succeed())
 					Expect(c.WatchCalls).To(HaveLen(2))
 					Expect(c.WatchCalls[0].Handler).To(BeAssignableToTypeOf(&handler.EnqueueRequestForOwner{}))
 					Expect(c.WatchCalls[1].Handler).To(BeAssignableToTypeOf(&handler.EnqueueRequestForOwner{}))
@@ -143,7 +143,7 @@ var _ = Describe("Hook", func() {
 						Manifest: strings.Join([]string{clusterRole, clusterRoleBinding}, "---\n"),
 					}
 					drw = internalhook.NewDependentResourceWatcher(c, rm)
-					Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(Succeed())
+					Expect(drw.PostReconcile(context.TODO(), &extension.Context{HelmRelease: rel}, owner)).To(Succeed())
 					Expect(c.WatchCalls).To(HaveLen(2))
 					Expect(c.WatchCalls[0].Handler).To(BeAssignableToTypeOf(&handler.EnqueueRequestForOwner{}))
 					Expect(c.WatchCalls[1].Handler).To(BeAssignableToTypeOf(&handler.EnqueueRequestForOwner{}))
@@ -153,7 +153,7 @@ var _ = Describe("Hook", func() {
 						Manifest: strings.Join([]string{rsOwnerNamespaceWithKeep, ssOtherNamespaceWithKeep, clusterRoleWithKeep, clusterRoleBindingWithKeep}, "---\n"),
 					}
 					drw = internalhook.NewDependentResourceWatcher(c, rm)
-					Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(Succeed())
+					Expect(drw.PostReconcile(context.TODO(), &extension.Context{HelmRelease: rel}, owner)).To(Succeed())
 					Expect(c.WatchCalls).To(HaveLen(4))
 					Expect(c.WatchCalls[0].Handler).To(BeAssignableToTypeOf(&sdkhandler.EnqueueRequestForAnnotation{}))
 					Expect(c.WatchCalls[1].Handler).To(BeAssignableToTypeOf(&sdkhandler.EnqueueRequestForAnnotation{}))
@@ -179,8 +179,9 @@ var _ = Describe("Hook", func() {
 					rel = &release.Release{
 						Manifest: strings.Join([]string{rsOwnerNamespace}, "---\n"),
 					}
+					reconcilianContext := extension.Context{HelmRelease: rel}
 					drw = internalhook.NewDependentResourceWatcher(c, rm)
-					Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(Succeed())
+					Expect(drw.PostReconcile(context.TODO(), &reconcilianContext, owner)).To(Succeed())
 					Expect(c.WatchCalls).To(HaveLen(1))
 					Expect(c.WatchCalls[0].Handler).To(BeAssignableToTypeOf(&handler.EnqueueRequestForOwner{}))
 				})
@@ -188,8 +189,9 @@ var _ = Describe("Hook", func() {
 					rel = &release.Release{
 						Manifest: strings.Join([]string{clusterRole}, "---\n"),
 					}
+					reconcilianContext := extension.Context{HelmRelease: rel}
 					drw = internalhook.NewDependentResourceWatcher(c, rm)
-					Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(Succeed())
+					Expect(drw.PostReconcile(context.TODO(), &reconcilianContext, owner)).To(Succeed())
 					Expect(c.WatchCalls).To(HaveLen(1))
 					Expect(c.WatchCalls[0].Handler).To(BeAssignableToTypeOf(&sdkhandler.EnqueueRequestForAnnotation{}))
 				})
@@ -197,8 +199,9 @@ var _ = Describe("Hook", func() {
 					rel = &release.Release{
 						Manifest: strings.Join([]string{ssOtherNamespace}, "---\n"),
 					}
+					reconcilianContext := extension.Context{HelmRelease: rel}
 					drw = internalhook.NewDependentResourceWatcher(c, rm)
-					Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(Succeed())
+					Expect(drw.PostReconcile(context.TODO(), &reconcilianContext, owner)).To(Succeed())
 					Expect(c.WatchCalls).To(HaveLen(1))
 					Expect(c.WatchCalls[0].Handler).To(BeAssignableToTypeOf(&sdkhandler.EnqueueRequestForAnnotation{}))
 				})
@@ -206,8 +209,9 @@ var _ = Describe("Hook", func() {
 					rel = &release.Release{
 						Manifest: strings.Join([]string{rsOwnerNamespaceWithKeep, ssOtherNamespaceWithKeep, clusterRoleWithKeep}, "---\n"),
 					}
+					reconcilianContext := extension.Context{HelmRelease: rel}
 					drw = internalhook.NewDependentResourceWatcher(c, rm)
-					Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(Succeed())
+					Expect(drw.PostReconcile(context.TODO(), &reconcilianContext, owner)).To(Succeed())
 					Expect(c.WatchCalls).To(HaveLen(3))
 					Expect(c.WatchCalls[0].Handler).To(BeAssignableToTypeOf(&sdkhandler.EnqueueRequestForAnnotation{}))
 					Expect(c.WatchCalls[1].Handler).To(BeAssignableToTypeOf(&sdkhandler.EnqueueRequestForAnnotation{}))
@@ -217,8 +221,9 @@ var _ = Describe("Hook", func() {
 					rel = &release.Release{
 						Manifest: strings.Join([]string{replicaSetList}, "---\n"),
 					}
+					reconcilianContext := extension.Context{HelmRelease: rel}
 					drw = internalhook.NewDependentResourceWatcher(c, rm)
-					Expect(drw.PostReconcile(context.TODO(), owner, *rel, nil)).To(Succeed())
+					Expect(drw.PostReconcile(context.TODO(), &reconcilianContext, owner)).To(Succeed())
 					Expect(c.WatchCalls).To(HaveLen(2))
 					Expect(c.WatchCalls[0].Handler).To(BeAssignableToTypeOf(&handler.EnqueueRequestForOwner{}))
 					Expect(c.WatchCalls[1].Handler).To(BeAssignableToTypeOf(&handler.EnqueueRequestForOwner{}))
@@ -227,8 +232,9 @@ var _ = Describe("Hook", func() {
 					rel = &release.Release{
 						Manifest: strings.Join([]string{errReplicaSetList}, "---\n"),
 					}
+					reconcilianContext := extension.Context{HelmRelease: rel}
 					drw = internalhook.NewDependentResourceWatcher(c, rm)
-					err := drw.PostReconcile(context.TODO(), owner, *rel, nil)
+					err := drw.PostReconcile(context.TODO(), &reconcilianContext, owner)
 					Expect(err).To(HaveOccurred())
 				})
 			})

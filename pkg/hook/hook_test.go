@@ -41,7 +41,7 @@ var _ = Describe("Hook", func() {
 					return nil
 				},
 			}
-			Expect(h.PreReconcile(context.TODO(), nil)).To(Succeed())
+			Expect(h.PreReconcile(context.TODO(), nil, nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})
@@ -54,7 +54,7 @@ var _ = Describe("Hook", func() {
 					return nil
 				},
 			}
-			Expect(h.PostReconcile(context.TODO(), nil, release.Release{}, nil)).To(Succeed())
+			Expect(h.PostReconcile(context.TODO(), nil, nil)).To(Succeed())
 			Expect(called).To(BeTrue())
 		})
 	})
