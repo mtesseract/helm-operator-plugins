@@ -370,7 +370,7 @@ func WithUninstallAnnotations(as ...annotation.Uninstall) Option {
 // specific feature.
 func WithExtension(e extension.ReconcilerExtension) Option {
 	return func(r *Reconciler) error {
-		r.extensions.register(e)
+		r.extensions = append(r.extensions, e)
 		return nil
 	}
 }
@@ -864,7 +864,7 @@ func (r *Reconciler) setupWatches(mgr ctrl.Manager, c controller.Controller) err
 	}
 
 	if !r.skipDependentWatches {
-		r.extensions.register(internalhook.NewDependentResourceWatcher(c, mgr.GetRESTMapper()))
+		r.extensions = append(r.extensions, internalhook.NewDependentResourceWatcher(c, mgr.GetRESTMapper()))
 	}
 	return nil
 }

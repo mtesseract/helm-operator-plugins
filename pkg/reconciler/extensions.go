@@ -9,25 +9,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-type extensions struct {
-	extensions []extension.ReconcilerExtension
-}
+type extensions []extension.ReconcilerExtension
 
-func (es *extensions) register(e extension.ReconcilerExtension) {
-	es.extensions = append(es.extensions, e)
-}
-
-func (es *extensions) len() int {
-	return len(es.extensions)
-}
-
-func (es *extensions) get(idx int) extension.ReconcilerExtension {
-	return es.extensions[idx]
-}
-
-func (es *extensions) forEach(f func(e extension.ReconcilerExtension) error) error {
+func (es extensions) forEach(f func(e extension.ReconcilerExtension) error) error {
 	var err error
-	for _, e := range es.extensions {
+	for _, e := range es {
 		err = f(e)
 		if err != nil {
 			return err

@@ -344,10 +344,10 @@ var _ = Describe("Reconciler", func() {
 					called = true
 					return nil
 				})
-				nExtensions := r.extensions.len()
+				nExtensions := len(r.extensions)
 				Expect(WithPreHook(preHook)(r)).To(Succeed())
-				Expect(r.extensions.len()).To(Equal(nExtensions + 1))
-				hook := r.extensions.get(nExtensions).(extension.PreReconciliationExtension)
+				Expect(len(r.extensions)).To(Equal(nExtensions + 1))
+				hook := r.extensions[nExtensions].(extension.PreReconciliationExtension)
 				Expect(hook.PreReconcile(context.TODO(), nil)).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
@@ -359,10 +359,10 @@ var _ = Describe("Reconciler", func() {
 					called = true
 					return nil
 				})
-				nExtensions := r.extensions.len()
+				nExtensions := len(r.extensions)
 				Expect(WithPostHook(postHook)(r)).To(Succeed())
-				Expect(r.extensions.len()).To(Equal(nExtensions + 1))
-				hook := r.extensions.get(nExtensions).(extension.PostReconciliationExtension)
+				Expect(len(r.extensions)).To(Equal(nExtensions + 1))
+				hook := r.extensions[nExtensions].(extension.PostReconciliationExtension)
 				Expect(hook.PostReconcile(context.TODO(), nil, release.Release{}, nil)).To(Succeed())
 				Expect(called).To(BeTrue())
 			})
@@ -499,8 +499,8 @@ var _ = Describe("Reconciler", func() {
 					return nil
 				}}
 
-				r.extensions.register(failingPreReconciliationExt)
-				r.extensions.register(succeedingPreReconciliationExt)
+				r.extensions = append(r.extensions, failingPreReconciliationExt)
+				r.extensions = append(r.extensions, succeedingPreReconciliationExt)
 
 				err := r.extPreReconcile(ctx, &unstructured.Unstructured{})
 				Expect(err).To(HaveOccurred())
@@ -1393,8 +1393,8 @@ func verifyHooksCalled(ctx context.Context, r *Reconciler, req reconcile.Request
 			return errors.New("post hook foobar")
 		}
 		r.log = zap.New(zap.WriteTo(buf))
-		r.extensions.register(hook.PreHook{F: hook.WrapPreHookFunc(preHook)})
-		r.extensions.register(hook.PostHook{F: hook.WrapPostHookFunc(postHook)})
+		r.extensions = append(r.extensions, hook.PreHook{F: hook.WrapPreHookFunc(preHook)})
+		r.extensions = append(r.extensions, hook.PostHook{F: hook.WrapPostHookFunc(postHook)})
 	})
 	By("successfully reconciling a request", func() {
 		res, err := r.Reconcile(ctx, req)
