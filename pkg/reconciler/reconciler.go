@@ -363,11 +363,6 @@ func WithUninstallAnnotations(as ...annotation.Uninstall) Option {
 // WithExtension is an Option that registers an extension into the reconciler.
 // For example, extensions may be necessary when need arises to manage certain
 // resources outsides of the standard Helm-based workflow.
-//
-// In order for the extension to be effectively called by the reconciler it needs
-// to implement an extension interface. There are several extension interfaces and
-// an extension may implement any extension interfaces that are required for the
-// specific feature.
 func WithExtension(e extension.ReconcilerExtension) Option {
 	return func(r *Reconciler) error {
 		r.extensions = append(r.extensions, e)
@@ -525,7 +520,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	err = r.extBeginReconcile(ctx, &reconciliationContext, obj)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("PreReconciliation extension failed: %v", err)
+		return ctrl.Result{}, fmt.Errorf("Extension failed during begin-reconcile phase: %v", err)
 	}
 
 	if obj.GetDeletionTimestamp() != nil {
@@ -535,7 +530,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		}
 		err = r.extEndReconcile(ctx, &reconciliationContext, obj)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("PreReconciliation extension failed: %v", err)
+			return ctrl.Result{}, fmt.Errorf("Extension failed during end-reconcile phase: %v", err)
 		}
 		return ctrl.Result{}, nil
 	}
@@ -587,7 +582,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	err = r.extEndReconcile(ctx, &reconciliationContext, obj)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("PostReconciliation extension failed: %v", err)
+		return ctrl.Result{}, fmt.Errorf("Extension failed during end-reconcile phase: %v", err)
 	}
 
 	ensureDeployedRelease(&u, rel)
