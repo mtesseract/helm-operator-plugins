@@ -12,6 +12,7 @@ import (
 // ReconcilerExtension defines an extension for the reconciler.
 // It consists of several sub-interfaces.
 type ReconcilerExtension interface {
+	Name() string
 	BeginReconciliationExtension
 	EndReconciliationExtension
 }

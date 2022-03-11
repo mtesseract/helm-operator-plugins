@@ -59,6 +59,10 @@ type dependentResourceWatcher struct {
 
 var _ extension.EndReconciliationExtension = (*dependentResourceWatcher)(nil)
 
+func (d *dependentResourceWatcher) Name() string {
+	return "internal-dependent-resource-watcher"
+}
+
 func (d *dependentResourceWatcher) EndReconcile(ctx context.Context, reconciliationContext *extension.Context, owner *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
 	rel := reconciliationContext.GetHelmRelease()

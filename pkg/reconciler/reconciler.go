@@ -520,7 +520,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	err = r.extBeginReconcile(ctx, &reconciliationContext, obj)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("Extension failed during begin-reconcile phase: %v", err)
+		return ctrl.Result{}, err
 	}
 
 	if obj.GetDeletionTimestamp() != nil {
@@ -530,7 +530,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 		}
 		err = r.extEndReconcile(ctx, &reconciliationContext, obj)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("Extension failed during end-reconcile phase: %v", err)
+			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
 	}
@@ -582,7 +582,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	err = r.extEndReconcile(ctx, &reconciliationContext, obj)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("Extension failed during end-reconcile phase: %v", err)
+		return ctrl.Result{}, err
 	}
 
 	ensureDeployedRelease(&u, rel)

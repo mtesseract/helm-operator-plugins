@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/operator-framework/helm-operator-plugins/pkg/extension"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -26,7 +27,11 @@ func (r *Reconciler) extBeginReconcile(ctx context.Context, reconciliationContex
 		if !ok {
 			return nil
 		}
-		return e.BeginReconcile(ctx, reconciliationContext, obj)
+		err := e.BeginReconcile(ctx, reconciliationContext, obj)
+		if err != nil {
+			return fmt.Errorf("extension %s failed during begin-reconcile phase: %v", ext.Name(), err)
+		}
+		return nil
 	})
 }
 
@@ -37,6 +42,10 @@ func (r *Reconciler) extEndReconcile(ctx context.Context, reconciliationContext 
 			return nil
 		}
 
-		return e.EndReconcile(ctx, reconciliationContext, obj)
+		err := e.EndReconcile(ctx, reconciliationContext, obj)
+		if err != nil {
+			return fmt.Errorf("extension %s failed during end-reconcile phase: %v", ext.Name(), err)
+		}
+		return nil
 	})
 }

@@ -52,6 +52,10 @@ func WrapPostHookFunc(f PostHookFunc) PostHookFunc {
 	return PostHookFunc(wrappedF)
 }
 
+func (h PreHookFunc) Name() string {
+	return "pre-hook"
+}
+
 func (h PreHookFunc) BeginReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	log := logr.FromContextOrDiscard(ctx)
 	return h(ctx, obj, log)
@@ -64,6 +68,10 @@ func (h PreHookFunc) EndReconcile(ctx context.Context, reconciliationContext *ex
 var _ extension.ReconcilerExtension = (PreHookFunc)(nil)
 
 type PostHookFunc func(context.Context, *unstructured.Unstructured, release.Release, chartutil.Values, logr.Logger) error
+
+func (h PostHookFunc) Name() string {
+	return "post-hook"
+}
 
 func (f PostHookFunc) BeginReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	return nil

@@ -489,12 +489,12 @@ var _ = Describe("Reconciler", func() {
 					succeedingPreReconciliationExtCalled bool
 				)
 
-				failingPreReconciliationExt := &testPreReconcileExtension{f: func() error {
+				failingPreReconciliationExt := &testBeginReconcileExtension{f: func() error {
 					failingPreReconciliationExtCalled = true
 					return errors.New("error!")
 				}}
 
-				succeedingPreReconciliationExt := &testPreReconcileExtension{f: func() error {
+				succeedingPreReconciliationExt := &testBeginReconcileExtension{f: func() error {
 					succeedingPreReconciliationExtCalled = true
 					return nil
 				}}
@@ -1423,11 +1423,17 @@ func verifyEvent(ctx context.Context, cl client.Reader, obj metav1.Object, event
 	Message: %q`, eventType, reason, message))
 }
 
-type testPreReconcileExtension struct {
+type testBeginReconcileExtension struct {
 	f func() error
 	extension.NoOpReconcilerExtension
 }
 
-func (e *testPreReconcileExtension) BeginReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
+func (e *testBeginReconcileExtension) Name() string {
+	return "test-extension"
+}
+
+func (e *testBeginReconcileExtension) BeginReconcile(ctx context.Context, reconciliationContext *extension.Context, obj *unstructured.Unstructured) error {
 	return e.f()
 }
+
+var _ extension.ReconcilerExtension = (*testBeginReconcileExtension)(nil)
